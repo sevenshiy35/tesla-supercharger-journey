@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" role="img" aria-labelledby="title">
+  <title id="title">Tysons suburban charging stop illustration</title>
+  <rect width="1200" height="750" fill="#ffffff"/>
+  <rect y="430" width="1200" height="320" fill="#f5f5f7"/>
+  <path d="M126 428h948v76H126z" fill="#272729"/>
+  <path d="M202 290h170v138H202zm238-62h174v200H440zm244 96h146v104H684zm202-148h112v252H886z" fill="#1d1d1f"/>
+  <path d="M238 598h490c36 0 66 30 66 66H172c0-36 30-66 66-66z" fill="#0066cc"/>
+  <circle cx="320" cy="668" r="34" fill="#272729"/><circle cx="684" cy="668" r="34" fill="#272729"/>
+</svg>

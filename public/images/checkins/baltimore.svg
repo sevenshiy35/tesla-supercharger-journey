@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" role="img" aria-labelledby="title">
+  <title id="title">Baltimore harbor charging stop illustration</title>
+  <rect width="1200" height="750" fill="#f5f5f7"/>
+  <rect y="505" width="1200" height="245" fill="#ffffff"/>
+  <path d="M164 500h872l-78 74H242l-78-74z" fill="#272729"/>
+  <path d="M330 420h540l-80 80H410l-80-80z" fill="#1d1d1f"/>
+  <path d="M0 620 C180 582 272 675 448 630 C660 575 825 690 1200 585" fill="none" stroke="#0066cc" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="448" cy="630" r="18" fill="#0066cc"/>
+</svg>

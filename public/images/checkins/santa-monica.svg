@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" role="img" aria-labelledby="title">
+  <title id="title">Santa Monica coastal charging stop illustration</title>
+  <rect width="1200" height="750" fill="#ffffff"/>
+  <rect y="468" width="1200" height="282" fill="#f5f5f7"/>
+  <path d="M0 487 C170 446 319 526 478 487 C657 443 816 525 1000 477 C1084 455 1149 455 1200 465" fill="none" stroke="#0066cc" stroke-width="12"/>
+  <circle cx="940" cy="176" r="56" fill="#d70015"/>
+  <path d="M292 591h492c34 0 62 28 62 62H230c0-34 28-62 62-62z" fill="#1d1d1f"/>
+  <circle cx="350" cy="657" r="34" fill="#272729"/><circle cx="720" cy="657" r="34" fill="#272729"/>
+</svg>

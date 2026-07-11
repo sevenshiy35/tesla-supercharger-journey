@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" role="img" aria-labelledby="title">
+  <title id="title">Minimal road and charger placeholder</title>
+  <rect width="1200" height="750" fill="#f5f5f7"/>
+  <rect x="0" y="510" width="1200" height="240" fill="#ffffff"/>
+  <path d="M0 610 C240 520 410 695 620 590 C795 504 980 535 1200 450" fill="none" stroke="#0066cc" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="255" cy="569" r="18" fill="#0066cc"/>
+  <circle cx="620" cy="590" r="18" fill="#d70015"/>
+  <circle cx="955" cy="510" r="18" fill="#0066cc"/>
+</svg>

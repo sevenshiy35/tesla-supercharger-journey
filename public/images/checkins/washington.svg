@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" role="img" aria-labelledby="title">
+  <title id="title">Washington city charging stop illustration</title>
+  <rect width="1200" height="750" fill="#f5f5f7"/>
+  <rect y="520" width="1200" height="230" fill="#ffffff"/>
+  <path d="M580 118h40l28 392h-96l28-392z" fill="#1d1d1f"/>
+  <path d="M364 512h472v36H364z" fill="#272729"/>
+  <path d="M0 626 C230 560 380 696 612 606 C808 530 980 555 1200 502" fill="none" stroke="#0066cc" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="612" cy="606" r="22" fill="#0066cc"/>
+</svg>

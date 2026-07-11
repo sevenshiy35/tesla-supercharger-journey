@@ -1,0 +1,45 @@
+"use client";
+
+import Link from "next/link";
+import { useLanguage } from "@/i18n/LanguageProvider";
+import { interpolateText } from "@/i18n/translations";
+import { formatDisplayDate } from "@/lib/journey/calculations";
+import type { StationDataSource } from "@/types/station-data";
+
+interface SiteFooterProps {
+  lastUpdated: string;
+  dataSource: StationDataSource;
+}
+
+export function SiteFooter({ lastUpdated, dataSource }: SiteFooterProps) {
+  const { copy, language } = useLanguage();
+  const updatedDate = lastUpdated
+    ? formatDisplayDate(lastUpdated, language)
+    : copy.footer.unavailable;
+
+  return (
+    <footer className="bg-parchment px-5 py-16 text-[12px] leading-[1.5] text-[#3d625f] sm:px-8 lg:px-12">
+      <div className="mx-auto max-w-[1180px]">
+        <div className="grid gap-8 border-b border-hairline pb-8 md:grid-cols-[1fr_auto]">
+          <div>
+            <h2 className="text-[17px] font-semibold text-ink">MyTesla2026Journey</h2>
+            <p className="mt-2 max-w-[520px]">{copy.footer.description}</p>
+          </div>
+          <div className="flex flex-wrap gap-x-6 gap-y-3 md:justify-end">
+            <span>{interpolateText(copy.footer.lastUpdated, { date: updatedDate })}</span>
+            {dataSource === "sample" ? <span>{copy.footer.sampleSource}</span> : null}
+            <Link href="/privacy" className="text-action-blue">
+              {copy.footer.privacy}
+            </Link>
+            <Link href="/admin" className="text-[#3d625f]">
+              {copy.footer.admin}
+            </Link>
+          </div>
+        </div>
+        <p className="mt-6">
+          {copy.footer.note}
+        </p>
+      </div>
+    </footer>
+  );
+}

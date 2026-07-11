@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "SF Pro Display", "SF Pro Text", "PingFang SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+  --color-action-blue: #34908b;
+  --color-action-blue-dark: #a5e9dd;
+  --color-ink: #173f3c;
+  --color-parchment: #fdf4af;
+  --color-tile: #173f3c;
+  --color-tile-2: #215a55;
+  --color-hairline: #a5e9dd;
+  --color-visited: #1f6f9a;
+  --color-unvisited: #c9323b;
+}
+
+:root {
+  color: #173f3c;
+  background: #fffdf2;
+  font-family:
+    "SF Pro Display",
+    "SF Pro Text",
+    "PingFang SC",
+    "Microsoft YaHei",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Inter",
+    "Segoe UI",
+    sans-serif;
+  scroll-behavior: smooth;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  font-size: 17px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+select,
+input,
+textarea {
+  font: inherit;
+}
+
+a,
+button,
+select {
+  outline-offset: 4px;
+}
+
+a:focus-visible,
+button:focus-visible,
+select:focus-visible {
+  outline: 2px solid #34908b;
+}
+
+button:active,
+a[role="button"]:active {
+  transform: scale(0.97);
+}
+
+.mapboxgl-ctrl-attrib {
+  font-size: 11px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
