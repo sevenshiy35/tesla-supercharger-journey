@@ -1,6 +1,4 @@
-import "server-only";
-
-export type StationRepositoryErrorCode = "configuration" | "request" | "validation";
+export type StationRepositoryErrorCode = "configuration" | "request" | "validation" | "empty";
 
 export class StationRepositoryError extends Error {
   constructor(
@@ -30,5 +28,12 @@ export class StationDataValidationError extends StationRepositoryError {
   constructor(message: string) {
     super(message, "validation");
     this.name = "StationDataValidationError";
+  }
+}
+
+export class StationDataEmptyError extends StationRepositoryError {
+  constructor(message: string) {
+    super(message, "empty");
+    this.name = "StationDataEmptyError";
   }
 }

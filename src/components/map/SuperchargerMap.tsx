@@ -22,13 +22,14 @@ import { interpolateText } from "@/i18n/translations";
 import { formatDisplayDate } from "@/lib/journey/calculations";
 import { stationsToGeoJson } from "@/lib/map/stations-geojson";
 import { CONTIGUOUS_US_BOUNDS, CONTIGUOUS_US_MAX_BOUNDS } from "@/lib/map/us-map-bounds";
-import type { StationDataErrorView } from "@/types/station-data";
+import type { StationDataErrorView, StationDataSource } from "@/types/station-data";
 import type { SuperchargerStation } from "@/types/station";
 import { ConfigurationNotice } from "./ConfigurationNotice";
 import { StateSelector } from "./StateSelector";
 
 interface SuperchargerMapProps {
   stations: SuperchargerStation[];
+  dataSource: StationDataSource;
   dataError?: StationDataErrorView;
 }
 
@@ -212,7 +213,7 @@ function easeMapToBounds(
   });
 }
 
-export function SuperchargerMap({ stations, dataError }: SuperchargerMapProps) {
+export function SuperchargerMap({ stations, dataSource, dataError }: SuperchargerMapProps) {
   const { copy, language } = useLanguage();
   const locale = language === "zh" ? "zh-CN" : "en-US";
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -234,15 +235,26 @@ export function SuperchargerMap({ stations, dataError }: SuperchargerMapProps) {
   );
   const geoJson = useMemo(() => stationsToGeoJson(filteredStations), [filteredStations]);
   const localizedDataError = dataError
-    ? {
-        ...dataError,
-        title: dataError.canRetry
-          ? copy.map.stationDataUnavailable
-          : copy.map.stationDataNotConfigured,
-        message: dataError.canRetry
-          ? copy.map.stationDataUnavailableMessage
-          : copy.map.stationDataNotConfiguredMessage,
-      }
+    ? dataError.kind === "empty"
+      ? {
+          ...dataError,
+          title: copy.map.stationDataEmpty,
+          message: copy.map.stationDataEmptyMessage,
+        }
+      : dataError.kind === "configuration"
+        ? {
+            ...dataError,
+            title: copy.map.stationDataNotConfigured,
+            message:
+              dataSource === "supabase"
+                ? copy.map.supabaseDataNotConfiguredMessage
+                : copy.map.stationDataNotConfiguredMessage,
+          }
+        : {
+            ...dataError,
+            title: copy.map.stationDataUnavailable,
+            message: copy.map.stationDataUnavailableMessage,
+          }
     : undefined;
 
   useEffect(() => {

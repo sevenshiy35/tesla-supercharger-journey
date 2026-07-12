@@ -14,9 +14,9 @@ export function HeroSection() {
     >
       <div
         aria-hidden
-        className="absolute inset-0 scale-110 bg-[url('/images/hero/tesla.png')] bg-cover bg-center opacity-70 blur-2xl"
+        className="absolute inset-0 bg-[url('/images/hero/mesh-759.png')] bg-cover bg-center"
       />
-      <div aria-hidden className="absolute inset-0 bg-[#fffdf2]/52" />
+      <div aria-hidden className="absolute inset-0 bg-[#fffdf2]/10" />
       <div className="relative z-10 mx-auto grid w-full max-w-[1360px] items-center gap-10 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)]">
         <div className="min-w-0 max-w-[720px] rounded-[28px] border border-white/48 bg-white/26 p-6 shadow-[0_24px_70px_rgba(23,63,60,0.16)] backdrop-blur-2xl sm:p-8">
           <p className="mb-4 text-[17px] font-semibold text-ink">{copy.hero.eyebrow}</p>

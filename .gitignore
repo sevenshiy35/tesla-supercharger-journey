@@ -28,3 +28,13 @@ nlr-dev-server.log
 
 # vercel
 .vercel
+
+# generated reconciliation output
+artifacts/
+
+# private human-reviewed Receipt timestamps
+receipt-time-overrides*.json
+
+# local Receipt analysis outputs and generated work files
+outputs/
+tmp/

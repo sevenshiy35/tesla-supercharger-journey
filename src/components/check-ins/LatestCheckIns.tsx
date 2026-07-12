@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useLanguage } from "@/i18n/LanguageProvider";
 import { getLocalizedStateName } from "@/i18n/state-names";
 import { interpolateText, sampleCheckInNotesZh } from "@/i18n/translations";
-import { formatDisplayDate } from "@/lib/journey/calculations";
+import { formatCheckInDisplayDate } from "@/lib/journey/calculations";
 import type { CheckInRecord } from "@/types/journey";
 import type { StationDataSource } from "@/types/station-data";
 
@@ -52,12 +52,19 @@ export function LatestCheckIns({ checkIns, dataSource }: LatestCheckInsProps) {
                 <div className="mt-5">
                   <p className="text-[14px] text-[#3d625f]">
                     {checkIn.city}, {getLocalizedStateName(checkIn.state, language)} ·{" "}
-                    {formatDisplayDate(checkIn.checkedInAt, language)}
+                    {formatCheckInDisplayDate(
+                      checkIn.checkedInAt,
+                      language,
+                      checkIn.checkedInTimePrecision,
+                      checkIn.checkedInTimezone,
+                    )}
                   </p>
                   <h3 className="mt-2 text-[24px] font-semibold leading-[1.15]">{checkIn.stationName}</h3>
-                  <p className="mt-3 text-[17px] leading-[1.5] text-[#3d625f]">
-                    {language === "zh" ? sampleCheckInNotesZh[checkIn.id] ?? checkIn.note : checkIn.note}
-                  </p>
+                  {checkIn.note ? (
+                    <p className="mt-3 text-[17px] leading-[1.5] text-[#3d625f]">
+                      {language === "zh" ? sampleCheckInNotesZh[checkIn.id] ?? checkIn.note : checkIn.note}
+                    </p>
+                  ) : null}
                   <p className="mt-3 text-[14px] text-[#3d625f]">
                     {checkIn.energyKwh?.toFixed(1) ?? "--"} kWh · $
                     {checkIn.costUsd?.toFixed(2) ?? "--"}

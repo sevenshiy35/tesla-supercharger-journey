@@ -16,6 +16,11 @@ export function SiteFooter({ lastUpdated, dataSource }: SiteFooterProps) {
   const updatedDate = lastUpdated
     ? formatDisplayDate(lastUpdated, language)
     : copy.footer.unavailable;
+  const sourceLabel = {
+    sample: copy.footer.sampleSource,
+    nlr: copy.footer.nlrSource,
+    supabase: copy.footer.supabaseSource,
+  }[dataSource];
 
   return (
     <footer className="bg-parchment px-5 py-16 text-[12px] leading-[1.5] text-[#3d625f] sm:px-8 lg:px-12">
@@ -27,7 +32,7 @@ export function SiteFooter({ lastUpdated, dataSource }: SiteFooterProps) {
           </div>
           <div className="flex flex-wrap gap-x-6 gap-y-3 md:justify-end">
             <span>{interpolateText(copy.footer.lastUpdated, { date: updatedDate })}</span>
-            {dataSource === "sample" ? <span>{copy.footer.sampleSource}</span> : null}
+            <span>{sourceLabel}</span>
             <Link href="/privacy" className="text-action-blue">
               {copy.footer.privacy}
             </Link>

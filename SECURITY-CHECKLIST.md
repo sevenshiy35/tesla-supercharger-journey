@@ -32,3 +32,28 @@ and an authenticated user whose UUID is present in `public.app_admins`.
 
 Also confirm sessions and photos tied to a private visit are hidden even when their own row is marked
 public. Keep all test user UUIDs and credentials outside the repository.
+
+## Receipt import RPC
+
+- [ ] **Migration review:** confirm `import_receipt_charge` is `security definer`, has an explicit
+  `search_path`, and is introduced only by the new Phase 2C Migration.
+- [ ] **Execute is service-role only:** confirm EXECUTE is revoked from public, anon, and
+  authenticated and granted only to service_role.
+- [ ] **No DELETE authority:** confirm Phase 2C grants only required SELECT and RPC EXECUTE to
+  service_role; it grants no table DELETE.
+- [ ] **Administrator validation:** call with a UUID absent from `app_admins` and confirm the whole
+  transaction fails without a Visit or Charging Session.
+- [ ] **Station validation:** call with a missing station UUID and confirm neither table changes.
+- [ ] **Atomic rollback:** intentionally fail the Charging Session constraints and confirm the Visit
+  insert is rolled back.
+- [ ] **Identity conflicts:** confirm an existing deterministic Visit with different station, user,
+  or timestamp is rejected rather than overwritten.
+- [ ] **GPS and notes untouched:** on repeat import, confirm existing `recorded_latitude`,
+  `recorded_longitude`, and `notes` are not modified by the RPC.
+- [ ] **Time precision validation:** confirm the RPC rejects values other than `exact` and
+  `date_only`, rejects a missing Session start for exact, and keeps Session start null for
+  date-only.
+- [ ] **Date-only display:** confirm a date-only Visit renders only its local event date and never
+  exposes the local-noon anchor as an actual charging time.
+- [ ] **Import environment:** keep `IMPORT_USER_ID`, the Receipt time-override file, and all secrets
+  outside source control. Reports must not contain the user UUID or customer identity.

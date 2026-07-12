@@ -70,3 +70,23 @@ export function formatDisplayDate(date?: string, language: Language = "en") {
     timeZone: "UTC",
   }).format(parsedDate);
 }
+
+export function formatCheckInDisplayDate(
+  date: string,
+  language: Language = "en",
+  precision: "exact" | "date_only" = "date_only",
+  timezone = "UTC",
+) {
+  const parsedDate = new Date(date);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return language === "zh" ? "未知" : "Unknown";
+  }
+
+  return new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    ...(precision === "exact" ? { hour: "numeric", minute: "2-digit" } : {}),
+    timeZone: timezone,
+  }).format(parsedDate);
+}

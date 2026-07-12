@@ -13,9 +13,14 @@ Supabase support is isolated into:
 - `src/lib/supabase/client.ts`: browser client factory for Client Components.
 - `src/lib/supabase/server.ts`: cookie-aware server client factory for Server Components, Server
   Actions, and Route Handlers.
-- `src/types/database.ts`: an explicit placeholder until linked type generation is run.
+- `src/types/database.ts`: generated from the linked cloud schema; regenerate it after every
+  applied migration rather than editing it by hand.
 - `supabase/migrations/20260711_initial_journey_schema.sql`: the initial database schema, RLS,
   grants, and public map view.
+- `supabase/migrations/20260712090000_simplify_station_visits.sql`: the follow-up migration that reduces
+  visits to simple check-ins.
+- `supabase/migrations/20260712120000_simplify_charging_sessions.sql`: the follow-up migration that
+  reduces charging sessions to standardized values extracted from Tesla receipt photos.
 
 There is intentionally no auth proxy yet because this phase has no sign-in flow.
 
@@ -27,8 +32,8 @@ The migration creates five tables in `public`:
 | --- | --- |
 | `app_admins` | Allowlist of authenticated users who may manage journey data. |
 | `stations` | Imported station directory keyed by unique `external_id`. |
-| `station_visits` | Repeatable visits to a station; public/private state belongs here. |
-| `charging_sessions` | Optional one-to-one charging data for a visit in the first schema version. |
+| `station_visits` | Repeatable, simple check-ins; public/private state and optional recorded coordinates belong here. |
+| `charging_sessions` | Optional one-to-one standardized charging result extracted from a Tesla receipt. |
 | `visit_photos` | Photo metadata for a visit; no Storage bucket is created. |
 
 The migration also creates `public.set_updated_at()` and attaches it to the four tables containing
@@ -51,6 +56,35 @@ station_visits 1 ── 0..1 charging_sessions
 - Deleting a visit cascades to its charging session and photo metadata.
 - A station may have multiple visits. `stations` deliberately has no `visited` column.
 
+### Simplified check-ins
+
+After `20260712090000_simplify_station_visits.sql` is applied, `station_visits` contains only `id`,
+`station_id`, `user_id`, `checked_in_at`, `checked_in_timezone`, `recorded_latitude`,
+`recorded_longitude`, `notes`, `is_public`, `created_at`, and `updated_at`.
+
+`checked_in_at` is an absolute `timestamptz` instant and defaults to the database server's `now()`.
+`checked_in_timezone` stores the IANA zone used to present that instant locally, for example
+`America/New_York`, and defaults to `UTC` when the caller does not yet know the local zone. The
+schema does not duplicate local wall-clock time in a timestamp without time zone.
+
+Completion time, distance, battery percentages, odometer, and verification state are no longer
+visit responsibilities. Charging energy and cost remain in `charging_sessions`; photos remain in
+`visit_photos`.
+
+### Simplified charging sessions
+
+After `20260712120000_simplify_charging_sessions.sql` is applied, `charging_sessions` contains only
+`id`, `visit_id`, `started_at`, `energy_kwh`, `cost_usd`, `charging_minutes`, `price_per_kwh`,
+`created_at`, and `updated_at`.
+
+`visit_id` remains unique and continues to reference `station_visits(id)` with `on delete cascade`,
+so a visit has at most one charging session. The nonnegative checks on energy, cost, charging
+minutes, and unit price remain in place, as does the `updated_at` trigger. `ended_at`, `currency`,
+and `data_source` are removed; the table does not store OCR workflow state or source metadata.
+
+Future Tesla receipt images belong in `visit_photos` with `photo_type = 'receipt'`. The future OCR
+workflow reads that image and creates or updates the single normalized `charging_sessions` row.
+
 ## RLS permission model
 
 RLS is enabled on all five tables. SQL grants make objects reachable by the Data API; RLS still
@@ -72,15 +106,18 @@ photo metadata.
 
 ## Applying the migration
 
-The migration has been created locally but is not automatically applied to the cloud project.
+Migrations created locally are not automatically applied to the cloud project. The initial
+`20260711` migration is the deployed baseline; the visit and charging-session follow-ups remain
+pending until they are explicitly pushed.
 
 1. Authenticate the CLI without putting credentials in source code: `npx supabase login`.
 2. Link the local directory: `npm run supabase:link -- --project-ref YOUR_PROJECT_REF`.
-3. Review pending changes: `npx supabase db push --dry-run`.
-4. Apply the migration: `npm run supabase:push`.
-5. Generate linked database types: `npm run supabase:types`.
-6. Create the first administrator by following `ADMIN-SETUP.md`.
-7. Execute every check in `SECURITY-CHECKLIST.md` before using production data.
+3. Review pending migrations: `npx supabase migration list --linked`.
+4. Preview the database push: `npx supabase db push --dry-run`.
+5. Apply pending migrations: `npm run supabase:push`.
+6. Generate linked database types: `npm run supabase:types`.
+7. Create the first administrator by following `ADMIN-SETUP.md`.
+8. Execute every check in `SECURITY-CHECKLIST.md` before using production data.
 
 Do not provide a database password in chat or commit it. The CLI prompts or supported environment
 mechanisms should handle credentials locally.

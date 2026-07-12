@@ -26,6 +26,8 @@ export interface CheckInRecord {
   city: string;
   state: string;
   checkedInAt: string;
+  checkedInTimezone?: string;
+  checkedInTimePrecision?: "exact" | "date_only";
   energyKwh?: number;
   costUsd?: number;
   note?: string;

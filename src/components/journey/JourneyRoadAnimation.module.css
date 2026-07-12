@@ -1,0 +1,137 @@
+.scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  isolation: isolate;
+}
+
+.background {
+  z-index: 0;
+  object-fit: cover;
+  object-position: center;
+  image-rendering: pixelated;
+}
+
+.readabilityWash {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: rgba(253, 244, 175, 0.1);
+}
+
+.spriteImage {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+}
+
+.charger {
+  position: absolute;
+  z-index: 3;
+  left: 84.8%;
+  top: 44.3%;
+  width: clamp(34px, 3.4vw, 52px);
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 6px 6px rgba(23, 63, 60, 0.2));
+}
+
+.car {
+  position: absolute;
+  z-index: 4;
+  left: 94%;
+  top: 97%;
+  width: clamp(92px, 8vw, 118px);
+  aspect-ratio: 1;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  transform-origin: center;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 6px 5px rgba(23, 63, 60, 0.2));
+  will-change: left, top, opacity, background-image;
+}
+
+.cable {
+  position: absolute;
+  z-index: 5;
+  left: 79.4%;
+  top: 44.2%;
+  width: clamp(102px, 10vw, 154px);
+  opacity: 0;
+  clip-path: inset(0 0 0 100%);
+  filter: drop-shadow(0 3px 3px rgba(23, 63, 60, 0.2));
+  will-change: clip-path, opacity;
+}
+
+.chargeIcon {
+  position: absolute;
+  z-index: 6;
+  left: 80.8%;
+  top: 37.5%;
+  width: clamp(28px, 2.8vw, 42px);
+  aspect-ratio: 1;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.8);
+  background-image: url("/images/journey-animation/charging-status-icon.png");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 5px 5px rgba(23, 63, 60, 0.22));
+}
+
+.chargeIcon[data-visible="true"] {
+  opacity: 1;
+  animation: chargeIconPulse 780ms steps(2, end) infinite;
+}
+
+@keyframes chargeIconPulse {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translateY(0) scale(0.92);
+  }
+  50% {
+    transform: translate(-50%, -50%) translateY(-4px) scale(1);
+  }
+}
+
+@media (max-width: 700px) {
+  .background {
+    object-position: 72% center;
+  }
+
+  .readabilityWash {
+    background: rgba(255, 253, 242, 0.32);
+  }
+
+  .charger {
+    left: 87.5%;
+    top: 43.5%;
+    width: 29px;
+  }
+
+  .car {
+    width: 74px;
+  }
+
+  .cable {
+    left: 65.5%;
+    top: 43.3%;
+    width: 90px;
+  }
+
+  .chargeIcon {
+    width: 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chargeIcon[data-visible="true"] {
+    animation: none;
+    transform: translate(-50%, -50%) scale(0.92);
+  }
+}

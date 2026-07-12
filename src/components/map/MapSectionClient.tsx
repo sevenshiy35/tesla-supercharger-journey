@@ -22,6 +22,6 @@ interface MapSectionClientProps {
   dataError?: StationDataErrorView;
 }
 
-export function MapSectionClient({ stations, dataError }: MapSectionClientProps) {
-  return <SuperchargerMap stations={stations} dataError={dataError} />;
+export function MapSectionClient({ stations, dataSource, dataError }: MapSectionClientProps) {
+  return <SuperchargerMap stations={stations} dataSource={dataSource} dataError={dataError} />;
 }

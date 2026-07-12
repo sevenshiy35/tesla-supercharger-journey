@@ -10,30 +10,46 @@
     "supabase:init": "supabase init",
     "supabase:link": "supabase link",
     "supabase:push": "supabase db push",
-    "supabase:types": "supabase gen types typescript --linked --schema public > src/types/database.ts"
+    "supabase:types": "supabase gen types typescript --linked --schema public > src/types/database.ts",
+    "sync:stations": "tsx scripts/sync-nlr-stations.ts",
+    "sync:stations:dry": "tsx scripts/sync-nlr-stations.ts --dry-run",
+    "sync:stations:apply": "tsx scripts/sync-nlr-stations.ts --apply",
+    "sync:manual-stations": "tsx scripts/sync-manual-stations.ts",
+    "sync:manual-stations:dry": "tsx scripts/sync-manual-stations.ts --dry-run",
+    "sync:manual-stations:apply": "tsx scripts/sync-manual-stations.ts --apply",
+    "import:receipts": "tsx scripts/import-tesla-receipts.ts --dry-run",
+    "import:receipts:dry": "tsx scripts/import-tesla-receipts.ts --dry-run",
+    "import:receipts:apply": "tsx scripts/import-tesla-receipts.ts --apply",
+    "test": "tsx --test tests/phase-2b.test.ts tests/manual-stations.test.ts tests/receipt-import.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.110.2",
+    "adm-zip": "^0.6.0",
     "lucide-react": "^0.525.0",
     "mapbox-gl": "^3.14.0",
     "next": "16.2.10",
+    "pdfjs-dist": "^6.1.200",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "server-only": "^0.0.1",
+    "tz-lookup": "^6.1.25",
     "zod": "^4.0.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
     "@tailwindcss/postcss": "^4.3.2",
+    "@types/adm-zip": "^0.5.8",
     "@types/geojson": "^7946.0.16",
     "@types/node": "^24.0.10",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "@types/tz-lookup": "^6.1.2",
     "eslint": "^9.30.1",
     "eslint-config-next": "16.2.10",
     "supabase": "^2.109.1",
     "tailwindcss": "^4.3.2",
+    "tsx": "^4.23.0",
     "typescript": "^5.8.3"
   }
 }

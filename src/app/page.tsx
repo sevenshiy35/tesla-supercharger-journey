@@ -17,13 +17,24 @@ export const dynamic = "force-dynamic";
 function toStationDataError(error: unknown): StationDataErrorView {
   if (error instanceof StationRepositoryError && error.code === "configuration") {
     return {
+      kind: "configuration",
       title: "Station data is not configured",
       message: error.message,
       canRetry: false,
     };
   }
 
+  if (error instanceof StationRepositoryError && error.code === "empty") {
+    return {
+      kind: "empty",
+      title: "No station data has been imported yet",
+      message: "Run the station synchronization command.",
+      canRetry: false,
+    };
+  }
+
   return {
+    kind: "request",
     title: "Station data is temporarily unavailable",
     message:
       error instanceof StationRepositoryError
@@ -34,7 +45,9 @@ function toStationDataError(error: unknown): StationDataErrorView {
 }
 
 export default async function Home() {
-  let dataSource: StationDataSource = process.env.STATION_DATA_SOURCE === "nlr" ? "nlr" : "sample";
+  const requestedSource = process.env.STATION_DATA_SOURCE?.trim();
+  let dataSource: StationDataSource =
+    requestedSource === "nlr" || requestedSource === "supabase" ? requestedSource : "sample";
   let stations: SuperchargerStation[] = [];
   let latestCheckIns: CheckInRecord[] = [];
   let summary: JourneySummary = getJourneySummary([]);

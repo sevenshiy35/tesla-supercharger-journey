@@ -4,11 +4,11 @@ import { unstable_cache } from "next/cache";
 import { getJourneySummary, getStateSummary } from "@/lib/journey/calculations";
 import type { CheckInRecord, JourneySummary, StateJourneySummary } from "@/types/journey";
 import type { SuperchargerStation } from "@/types/station";
-import { StationDataConfigurationError, StationDataRequestError, StationDataValidationError } from "./errors";
-import { applyVisitedStationIds, nlrStationsResponseSchema, normalizeNlrStations } from "./mappers";
+import { StationDataConfigurationError } from "./errors";
+import { applyVisitedStationIds } from "./mappers";
+import { fetchNlrStationDirectory } from "./nlr-source";
 import type { StationsRepository } from "./repository";
 
-const NLR_STATIONS_ENDPOINT = "https://developer.nlr.gov/api/alt-fuel-stations/v1.json";
 const NLR_REVALIDATE_SECONDS = 86_400;
 
 const getCachedNlrStationDirectory = unstable_cache(
@@ -19,53 +19,10 @@ const getCachedNlrStationDirectory = unstable_cache(
       throw new StationDataConfigurationError("Add NLR_API_KEY to `.env.local`.");
     }
 
-    const url = new URL(NLR_STATIONS_ENDPOINT);
-    url.search = new URLSearchParams({
-      api_key: apiKey,
-      fuel_type: "ELEC",
-      country: "US",
-      ev_network: "Tesla",
-      access: "public",
-      status: "E",
-      limit: "all",
-    }).toString();
-
-    let response: Response;
-
-    try {
-      // The raw NLR response is about 30 MB, so cache the normalized result below instead.
-      response = await fetch(url, { cache: "no-store" });
-    } catch {
-      throw new StationDataRequestError("The NLR station request could not be completed.");
-    }
-
-    if (!response.ok) {
-      throw new StationDataRequestError(`The NLR station request failed with status ${response.status}.`);
-    }
-
-    let payload: unknown;
-
-    try {
-      payload = await response.json();
-    } catch {
-      throw new StationDataValidationError("The NLR response was not valid JSON.");
-    }
-
-    const parsed = nlrStationsResponseSchema.safeParse(payload);
-
-    if (!parsed.success) {
-      throw new StationDataValidationError("The NLR response did not match the expected station structure.");
-    }
-
-    const stations = normalizeNlrStations(parsed.data.fuel_stations, []);
-
-    if (parsed.data.fuel_stations.length > 0 && stations.length === 0) {
-      throw new StationDataValidationError("The NLR response contained no stations with valid coordinates.");
-    }
-
-    return stations;
+    // The raw NLR response is about 30 MB, so cache only the normalized station directory.
+    return (await fetchNlrStationDirectory({ apiKey })).stations;
   },
-  ["nlr-tesla-supercharger-directory-v1"],
+  ["nlr-tesla-supercharger-directory-v2"],
   {
     revalidate: NLR_REVALIDATE_SECONDS,
     tags: ["nlr-tesla-supercharger-directory"],

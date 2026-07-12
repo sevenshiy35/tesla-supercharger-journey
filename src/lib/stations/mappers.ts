@@ -118,25 +118,45 @@ function stationFingerprint(station: SuperchargerStation) {
   ].join("|");
 }
 
-export function normalizeNlrStations(
+export interface NormalizedNlrStationsResult {
+  stations: SuperchargerStation[];
+  rejected: number;
+  duplicatesRemoved: number;
+  rejectionExamples: string[];
+}
+
+export function normalizeNlrStationsDetailed(
   stations: NlrStation[],
   visitedExternalIds: readonly string[],
-) {
+): NormalizedNlrStationsResult {
   const visitedIds = new Set(visitedExternalIds);
   const seenExternalIds = new Set<string>();
   const seenFingerprints = new Set<string>();
   const normalized: SuperchargerStation[] = [];
+  const rejectionExamples: string[] = [];
+  let rejected = 0;
+  let duplicatesRemoved = 0;
 
   for (const rawStation of stations) {
     const station = mapNlrStation(rawStation, visitedIds);
 
-    if (!station || seenExternalIds.has(station.externalId)) {
+    if (!station) {
+      rejected += 1;
+      if (rejectionExamples.length < 10) {
+        rejectionExamples.push(`NLR station ${rawStation.id} has invalid coordinates.`);
+      }
+      continue;
+    }
+
+    if (seenExternalIds.has(station.externalId)) {
+      duplicatesRemoved += 1;
       continue;
     }
 
     const fingerprint = stationFingerprint(station);
 
     if (seenFingerprints.has(fingerprint)) {
+      duplicatesRemoved += 1;
       continue;
     }
 
@@ -145,7 +165,19 @@ export function normalizeNlrStations(
     normalized.push(station);
   }
 
-  return normalized;
+  return {
+    stations: normalized,
+    rejected,
+    duplicatesRemoved,
+    rejectionExamples,
+  };
+}
+
+export function normalizeNlrStations(
+  stations: NlrStation[],
+  visitedExternalIds: readonly string[],
+) {
+  return normalizeNlrStationsDetailed(stations, visitedExternalIds).stations;
 }
 
 export function applyVisitedStationIds(
