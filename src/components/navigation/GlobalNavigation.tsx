@@ -24,7 +24,7 @@ export function GlobalNavigation() {
   };
 
   return (
-    <header className="fixed inset-x-0 top-3 z-50 px-3 text-ink sm:px-5">
+    <header className="absolute inset-x-0 top-3 z-50 px-3 text-ink sm:px-5">
       <nav className="mx-auto flex h-16 max-w-[1180px] items-center justify-between rounded-[32px] border border-white/80 bg-[#fffdf2]/94 px-4 text-[13px] font-bold leading-none shadow-[0_18px_55px_rgba(23,63,60,0.16)] backdrop-blur-xl sm:h-[72px] sm:px-6">
         <Link
           href="/"
