@@ -198,40 +198,58 @@ export type Database = {
           bucket_name: string
           caption: string | null
           created_at: string
+          display_order: number
+          file_size_bytes: number
+          height: number
           id: string
+          is_cover: boolean
           is_public: boolean
+          mime_type: string
           photo_type: string
           storage_path: string
           taken_at: string | null
           updated_at: string
           user_id: string
           visit_id: string
+          width: number
         }
         Insert: {
           bucket_name: string
           caption?: string | null
           created_at?: string
+          display_order?: number
+          file_size_bytes: number
+          height: number
           id?: string
+          is_cover?: boolean
           is_public?: boolean
+          mime_type: string
           photo_type?: string
           storage_path: string
           taken_at?: string | null
           updated_at?: string
           user_id: string
           visit_id: string
+          width: number
         }
         Update: {
           bucket_name?: string
           caption?: string | null
           created_at?: string
+          display_order?: number
+          file_size_bytes?: number
+          height?: number
           id?: string
+          is_cover?: boolean
           is_public?: boolean
+          mime_type?: string
           photo_type?: string
           storage_path?: string
           taken_at?: string | null
           updated_at?: string
           user_id?: string
           visit_id?: string
+          width?: number
         }
         Relationships: [
           {
@@ -245,6 +263,42 @@ export type Database = {
       }
     }
     Views: {
+      public_visit_photos: {
+        Row: {
+          caption: string | null
+          created_at: string | null
+          display_order: number | null
+          height: number | null
+          id: string | null
+          is_cover: boolean | null
+          taken_at: string | null
+          visit_id: string | null
+          width: number | null
+        }
+        Insert: {
+          caption?: never
+          created_at?: never
+          display_order?: never
+          height?: never
+          id?: never
+          is_cover?: never
+          taken_at?: never
+          visit_id?: never
+          width?: never
+        }
+        Update: {
+          caption?: never
+          created_at?: never
+          display_order?: never
+          height?: never
+          id?: never
+          is_cover?: never
+          taken_at?: never
+          visit_id?: never
+          width?: never
+        }
+        Relationships: []
+      }
       public_station_status: {
         Row: {
           address: string | null
@@ -301,6 +355,112 @@ export type Database = {
       }
     }
     Functions: {
+      admin_create_visit_photo: {
+        Args: {
+          p_bucket_name: string
+          p_caption: string | null
+          p_file_size_bytes: number
+          p_height: number
+          p_is_public: boolean
+          p_mime_type: string
+          p_photo_id: string
+          p_photo_type: string
+          p_storage_path: string
+          p_taken_at: string | null
+          p_visit_id: string
+          p_width: number
+        }
+        Returns: {
+          caption: string | null
+          created_at: string
+          display_order: number
+          file_size_bytes: number
+          height: number
+          is_cover: boolean
+          is_public: boolean
+          mime_type: string
+          photo_id: string
+          photo_type: string
+          taken_at: string | null
+          updated_at: string
+          visit_id: string
+          width: number
+        }[]
+      }
+      admin_create_station_visit: {
+        Args: {
+          p_checked_in_timezone: string
+          p_is_public?: boolean
+          p_notes?: string | null
+          p_recorded_latitude?: number | null
+          p_recorded_longitude?: number | null
+          p_station_id: string
+          p_visit_id: string
+        }
+        Returns: {
+          checked_in_at: string
+          checked_in_timezone: string
+          is_public: boolean
+          station_id: string
+          visit_id: string
+        }[]
+      }
+      admin_delete_station_visit: {
+        Args: { p_deleted_photo_ids: string[]; p_visit_id: string }
+        Returns: {
+          station_id: string
+          visit_id: string
+        }[]
+      }
+      admin_delete_visit_photo: {
+        Args: { p_photo_id: string }
+        Returns: {
+          new_cover_photo_id: string | null
+          photo_id: string
+          visit_id: string
+        }[]
+      }
+      admin_reorder_visit_photos: {
+        Args: { p_photo_ids: string[]; p_visit_id: string }
+        Returns: {
+          display_order: number
+          photo_id: string
+        }[]
+      }
+      admin_set_visit_cover_photo: {
+        Args: { p_photo_id: string; p_visit_id: string }
+        Returns: {
+          is_cover: boolean
+          photo_id: string
+          updated_at: string
+          visit_id: string
+        }[]
+      }
+      admin_update_visit_photo: {
+        Args: {
+          p_caption: string | null
+          p_is_public: boolean
+          p_photo_id: string
+          p_photo_type: string
+        }
+        Returns: {
+          caption: string | null
+          is_public: boolean
+          photo_id: string
+          photo_type: string
+          updated_at: string
+          visit_id: string
+        }[]
+      }
+      admin_update_station_visit: {
+        Args: { p_is_public: boolean; p_notes: string | null; p_visit_id: string }
+        Returns: {
+          is_public: boolean
+          notes: string | null
+          updated_at: string
+          visit_id: string
+        }[]
+      }
       import_receipt_charge: {
         Args: {
           p_charging_minutes: number | null
@@ -323,6 +483,7 @@ export type Database = {
         }[]
       }
       is_app_admin: { Args: never; Returns: boolean }
+      visit_photo_storage_visit_id: { Args: { p_name: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never

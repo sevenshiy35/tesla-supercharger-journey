@@ -20,12 +20,15 @@
     "import:receipts": "tsx scripts/import-tesla-receipts.ts --dry-run",
     "import:receipts:dry": "tsx scripts/import-tesla-receipts.ts --dry-run",
     "import:receipts:apply": "tsx scripts/import-tesla-receipts.ts --apply",
-    "test": "tsx --test tests/phase-2b.test.ts tests/manual-stations.test.ts tests/receipt-import.test.ts"
+    "test": "tsx --test tests/phase-2b.test.ts tests/manual-stations.test.ts tests/receipt-import.test.ts tests/phase-2d.test.ts tests/phase-3a.test.ts"
   },
   "dependencies": {
+    "@phosphor-icons/core": "^2.1.1",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.110.2",
     "adm-zip": "^0.6.0",
+    "exifr": "^7.1.3",
+    "heic-to": "^1.5.2",
     "lucide-react": "^0.525.0",
     "mapbox-gl": "^3.14.0",
     "next": "16.2.10",
@@ -33,7 +36,9 @@
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "server-only": "^0.0.1",
+    "topojson-client": "^3.1.0",
     "tz-lookup": "^6.1.25",
+    "us-atlas": "^3.0.1",
     "zod": "^4.0.5"
   },
   "devDependencies": {
@@ -44,6 +49,8 @@
     "@types/node": "^24.0.10",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "@types/topojson-client": "^3.1.5",
+    "@types/topojson-specification": "^1.0.5",
     "@types/tz-lookup": "^6.1.2",
     "eslint": "^9.30.1",
     "eslint-config-next": "16.2.10",

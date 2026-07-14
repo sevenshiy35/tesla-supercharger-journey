@@ -2,20 +2,36 @@
 
 @theme {
   --font-sans: "SF Pro Display", "SF Pro Text", "PingFang SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+  --color-canvas: #fffdf2;
+  --color-surface: #ffffff;
+  --color-surface-muted: #edf4f0;
+  --color-surface-warm: #f7f0d8;
+  --color-ink-muted: #486d69;
+  --color-ink-subtle: #67817e;
+  --color-brand: #34908b;
+  --color-brand-strong: #2b7773;
+  --color-brand-soft: #d9efeb;
+  --color-border: #bedbd5;
+  --color-border-soft: #d5e6df;
+  --color-accent-warm: #c99345;
   --color-action-blue: #34908b;
   --color-action-blue-dark: #a5e9dd;
   --color-ink: #173f3c;
-  --color-parchment: #fdf4af;
+  --color-parchment: #f3e8bd;
   --color-tile: #173f3c;
   --color-tile-2: #215a55;
-  --color-hairline: #a5e9dd;
+  --color-hairline: #bedbd5;
   --color-visited: #1f6f9a;
   --color-unvisited: #c9323b;
 }
 
 :root {
-  color: #173f3c;
-  background: #fffdf2;
+  --color-region-west: #b97b5d;
+  --color-region-midwest: #b99a52;
+  --color-region-south: #6f8c69;
+  --color-region-northeast: #3e837d;
+  color: var(--color-ink);
+  background: var(--color-canvas);
   font-family:
     "SF Pro Display",
     "SF Pro Text",
@@ -63,7 +79,7 @@ select {
 a:focus-visible,
 button:focus-visible,
 select:focus-visible {
-  outline: 2px solid #34908b;
+  outline: 2px solid var(--color-brand);
 }
 
 button:active,

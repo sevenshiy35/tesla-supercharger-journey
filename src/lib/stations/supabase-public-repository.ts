@@ -3,7 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { getJourneySummary, getStateSummary } from "@/lib/journey/calculations";
-import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
+import { createPublicClient as createSupabasePublicClient } from "@/lib/supabase/public";
 import type { Database } from "@/types/database";
 import type { CheckInRecord, JourneySummary, StateJourneySummary } from "@/types/journey";
 import type { SuperchargerStation } from "@/types/station";
@@ -34,11 +34,20 @@ const latestCheckInRowSchema = z.object({
     .nullable(),
 });
 
+const publicVisitPhotoSchema = z.object({
+  id: z.string(),
+  visit_id: z.string(),
+  caption: z.string().nullable(),
+  is_cover: z.boolean(),
+  display_order: z.number(),
+  created_at: z.string(),
+});
+
 type PublicClientFactory = () => Promise<SupabaseClient<Database>>;
 
 export class SupabasePublicStationsRepository implements StationsRepository {
   constructor(
-    private readonly createPublicClient: PublicClientFactory = createSupabaseServerClient,
+    private readonly createPublicClient: PublicClientFactory = createSupabasePublicClient,
   ) {}
 
   async getAllStations(): Promise<SuperchargerStation[]> {
@@ -96,14 +105,41 @@ export class SupabasePublicStationsRepository implements StationsRepository {
       throw new StationDataRequestError("The latest public check-ins could not be loaded.");
     }
 
-    return (data ?? []).map((row) => {
+    const parsedVisits = (data ?? []).map((row) => {
       const parsed = latestCheckInRowSchema.safeParse(row);
-
       if (!parsed.success) {
         throw new StationDataValidationError("A public check-in row did not match the expected structure.");
       }
+      return parsed.data;
+    });
+    const visitIds = parsedVisits.map((visit) => visit.id);
+    const photosByVisit = new Map<string, Array<z.infer<typeof publicVisitPhotoSchema>>>();
+    if (visitIds.length > 0) {
+      const { data: photoData, error: photoError } = await client
+        .from("public_visit_photos")
+        .select("id,visit_id,caption,is_cover,display_order,created_at")
+        .in("visit_id", visitIds)
+        .order("is_cover", { ascending: false })
+        .order("display_order", { ascending: true })
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true });
+      const photoViewIsPending = photoError?.code === "PGRST205" || photoError?.code === "42P01";
+      if (photoError && !photoViewIsPending) {
+        throw new StationDataRequestError("Public check-in covers could not be loaded.");
+      }
+      if (!photoError) {
+        for (const row of photoData ?? []) {
+          const parsed = publicVisitPhotoSchema.safeParse(row);
+          if (!parsed.success) continue;
+          const photos = photosByVisit.get(parsed.data.visit_id) ?? [];
+          photos.push(parsed.data);
+          photosByVisit.set(parsed.data.visit_id, photos);
+        }
+      }
+    }
 
-      const value = parsed.data;
+    return parsedVisits.map((value) => {
+      const cover = photosByVisit.get(value.id)?.[0];
       return {
         id: value.id,
         stationId: value.station.id,
@@ -115,6 +151,9 @@ export class SupabasePublicStationsRepository implements StationsRepository {
         checkedInTimePrecision: value.checked_in_time_precision,
         energyKwh: value.charging_session?.energy_kwh ?? undefined,
         costUsd: value.charging_session?.cost_usd ?? undefined,
+        imageUrl: cover ? `/api/public/photos/${cover.id}` : undefined,
+        imageAlt: cover?.caption?.trim() || (cover ? `Tesla Supercharger visit photo at ${value.station.name}` : undefined),
+        detailUrl: `/visits/${value.id}`,
       };
     });
   }

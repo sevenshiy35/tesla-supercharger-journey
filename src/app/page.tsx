@@ -57,12 +57,13 @@ export default async function Home() {
     const selection = createStationsRepository();
     dataSource = selection.dataSource;
     stations = filterJourneyStations(await selection.repository.getAllStations());
-    const [activeSummary, repositoryCheckIns] = await Promise.all([
-      selection.repository.getJourneySummary(stations),
-      selection.repository.getLatestCheckIns(6),
-    ]);
-    summary = activeSummary;
-    latestCheckIns = filterJourneyCheckIns(repositoryCheckIns);
+    summary = await selection.repository.getJourneySummary(stations);
+    try {
+      latestCheckIns = filterJourneyCheckIns(await selection.repository.getLatestCheckIns(6));
+    } catch {
+      // The station directory remains useful when the optional latest-visit feed is unavailable.
+      latestCheckIns = [];
+    }
   } catch (error) {
     dataError = toStationDataError(error);
   }

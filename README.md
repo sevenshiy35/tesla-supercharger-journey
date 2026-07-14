@@ -79,9 +79,10 @@ To create the first administrator, first create the user in **Supabase Dashboard
 Users**, then add that UUID through the Dashboard SQL Editor as documented in `ADMIN-SETUP.md`. Never
 hard-code a real user UUID in a migration or source file.
 
-The Phase 2B sync has populated the current station directory; login and admin UI do not exist yet.
-See `PHASE-2A.md` for the schema and application steps and `SECURITY-CHECKLIST.md` for required
-manual RLS verification.
+The Phase 2B sync has populated the current station directory. Phase 2D adds Supabase Auth login,
+server-protected administrator pages, and mobile Visit management. See `PHASE-2A.md` for the base
+schema, `PHASE-2D.md` for the administrator architecture and application steps, and
+`SECURITY-CHECKLIST.md` for required manual RLS verification.
 
 ## Phase 2B station synchronization
 
@@ -152,6 +153,67 @@ Only `npm run import:receipts:apply` writes, through one service-role-only atomi
 See `PHASE-2C.md` for the model and safety design and `TESLA-RECEIPT-IMPORT.md` for preparation,
 reports, safe reruns, and SQL verification.
 
+## Phase 2D administrator login and mobile check-in
+
+The administrator surface is available at:
+
+```text
+/admin/login
+/admin/forgot-password
+/admin/reset-password
+/admin
+/admin/check-in
+/admin/visits
+/admin/visits/[id]
+```
+
+Create the Supabase Auth email/password user manually and register its UUID in `app_admins` as
+documented in `ADMIN-SETUP.md`; the app has no registration or invitation flow. Auth cookies are
+refreshed by `src/proxy.ts`, while every protected page and mutation verifies the Session with
+`auth.getUser()` and the server-managed allowlist.
+
+The phone flow supports protected station search, optional user-initiated Geolocation, Nearby
+Haversine sorting, plain-text notes, and a Public/Private toggle. Mobile check-ins always store
+database `now()` with precision `exact`; historical Receipt records retain `date_only` and display
+only their local date. GPS is optional, stays out of URLs and localStorage, and is not included in
+the public station-status View.
+
+Review the pending management RPC Migration without applying it:
+
+```bash
+npx supabase db push --dry-run
+```
+
+After review, apply it manually and regenerate linked types:
+
+```bash
+npx supabase db push
+npm run supabase:types
+```
+
+The three RPCs use Auth identity, RLS-compatible Sessions, fixed `search_path`, administrator
+checks, and authenticated-only execute grants. Phase 2D Admin/Auth runtime does not use a secret
+client; Phase 3A later adds one isolated server-only signer for validated public photos. Full test,
+deployment, deletion, privacy, and first-phone-check-in steps are in `PHASE-2D.md`.
+
+### Password recovery redirect
+
+Password recovery must start from `/admin/forgot-password`, not the Dashboard's generic recovery
+button. The app supplies `/auth/callback` as `redirectTo`, exchanges the PKCE code for the SSR Cookie
+Session, and then opens `/admin/reset-password`.
+
+In **Supabase Dashboard → Authentication → URL Configuration**, add the exact callback URL for each
+environment, for example:
+
+```text
+http://127.0.0.1:3000/auth/callback
+https://YOUR_PRODUCTION_DOMAIN/auth/callback
+```
+
+Keep Site URL set to the normal public site root. If the Recovery email template was customized,
+its link must use `{{ .ConfirmationURL }}` rather than a hard-coded Site URL. After changing URL
+Configuration, request a fresh email; an already-issued link keeps its old redirect destination.
+
 ## Mapbox setup
 
 1. Create or sign in to a [Mapbox account](https://account.mapbox.com/).
@@ -203,6 +265,42 @@ falls back to another. Their IDs describe different data sets, and fuzzy matchin
 could incorrectly mark a real station as visited. With an empty real visit list, NLR mode correctly
 shows zero visited stations.
 
+## Phase 3A Visit photos
+
+Phase 3A is implemented in code and documented in [PHASE-3A.md](./PHASE-3A.md). It adds a Private
+Supabase Storage Bucket contract, mobile photo processing/upload on `/admin/visits/[id]`, photo
+management, public `/visits/[id]` pages, and real public Covers in Latest Check-ins.
+
+Before using photos, manually apply the pending Migration after review, regenerate Supabase types,
+and create a **Private** Storage Bucket named `visit-photos`. The Migration intentionally does not
+create the Bucket. Allow JPEG, PNG, and WebP stored objects and use Supabase's default platform
+file-size configuration or a suitably high value. The project sets no custom photo-count, original
+file-size, or output file-size limit; actual uploads remain subject to Supabase Storage, the browser,
+device memory, and network conditions.
+
+Every selection is appended to a controlled queue. At most two items are decoded/compressed and at
+most two are uploaded at once, with per-item cancellation, retry, and failure isolation. Images are
+optimized to a 2,048 px maximum edge at JPEG quality 0.88, but they do not have to reach a fixed byte
+target. Supported JPEG/PNG/WebP originals can be used if Canvas encoding fails. HEIC/HEIF is converted
+to JPEG in a lazily loaded Web Worker; only capture date fields are read and EXIF GPS is not parsed.
+Video is not supported in Phase 3A.
+
+Public images use `/api/public/photos/[photoId]`. The server verifies both Photo and parent Visit are
+public before generating a 10-minute Signed URL. Because anonymous Storage reads are forbidden, the
+server runtime needs `SUPABASE_SECRET_KEY` in its protected environment. It must never be prefixed
+with `NEXT_PUBLIC_`; the key is isolated to a `server-only` module and is not included in client
+bundles. Admin upload, Metadata mutations, and protected previews continue to use the authenticated
+Cookie Session, `app_admins`, RLS, Storage Policies, and secured RPCs.
+
+Run the pending plan without applying it:
+
+```bash
+npx supabase db push --dry-run
+```
+
+See PHASE-3A.md for Bucket settings, EXIF/time rules, deletion compensation, security verification,
+manual Supabase operations, and the first iPhone acceptance test.
+
 ## Verification
 
 Run the project checks:
@@ -210,6 +308,7 @@ Run the project checks:
 ```bash
 npm run lint
 npm run typecheck
+npm run test
 npm run build
 ```
 

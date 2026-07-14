@@ -32,6 +32,8 @@ export interface CheckInRecord {
   costUsd?: number;
   note?: string;
   imageUrl?: string;
+  imageAlt?: string;
+  detailUrl?: `/visits/${string}`;
 }
 
 export interface NearbyCheckInCandidate {
