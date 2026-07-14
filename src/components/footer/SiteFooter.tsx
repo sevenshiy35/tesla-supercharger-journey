@@ -23,7 +23,7 @@ export function SiteFooter({ lastUpdated, dataSource }: SiteFooterProps) {
   }[dataSource];
 
   return (
-    <footer className="bg-parchment px-5 py-16 text-[12px] leading-[1.5] text-[#3d625f] sm:px-8 lg:px-12">
+    <footer className="bg-surface-warm px-5 py-16 text-[12px] leading-[1.5] text-ink-muted sm:px-8 lg:px-12">
       <div className="mx-auto max-w-[1180px]">
         <div className="grid gap-8 border-b border-hairline pb-8 md:grid-cols-[1fr_auto]">
           <div>
@@ -36,7 +36,7 @@ export function SiteFooter({ lastUpdated, dataSource }: SiteFooterProps) {
             <Link href="/privacy" className="text-action-blue">
               {copy.footer.privacy}
             </Link>
-            <Link href="/admin" className="text-[#3d625f]">
+            <Link href="/admin" className="text-ink-muted">
               {copy.footer.admin}
             </Link>
           </div>

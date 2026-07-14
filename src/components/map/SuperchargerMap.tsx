@@ -5,6 +5,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import mapboxgl, {
   type CameraOptions,
   type ExpressionSpecification,
+  type FilterSpecification,
   type GeoJSONSource,
   type LayerSpecification,
   type LngLatBoundsLike,
@@ -16,11 +17,13 @@ import { BatteryCharging, CircleDot, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ProgressStats } from "@/components/statistics/ProgressStats";
 import { US_STATE_BOUNDS } from "@/data/us-state-bounds";
+import { getStateName } from "@/data/us-states";
 import { useLanguage } from "@/i18n/LanguageProvider";
 import { getLocalizedStateName } from "@/i18n/state-names";
 import { interpolateText } from "@/i18n/translations";
 import { formatDisplayDate } from "@/lib/journey/calculations";
 import { stationsToGeoJson } from "@/lib/map/stations-geojson";
+import { selectedStateToGeoJson } from "@/lib/map/selected-state-geojson";
 import { CONTIGUOUS_US_BOUNDS, CONTIGUOUS_US_MAX_BOUNDS } from "@/lib/map/us-map-bounds";
 import type { StationDataErrorView, StationDataSource } from "@/types/station-data";
 import type { SuperchargerStation } from "@/types/station";
@@ -34,34 +37,99 @@ interface SuperchargerMapProps {
 }
 
 const sourceId = "supercharger-stations";
+const selectedStateBoundarySourceId = "selected-state-boundary-source";
+const selectedStateBoundaryLayerId = "selected-state-boundary";
 const hitAreaLayerId = "station-hit-area";
 const visitedLayerId = "visited-stations";
 const unvisitedLayerId = "unvisited-stations";
+const selectedStationOuterHaloLayerId = "selected-station-outer-halo";
+const selectedStationHaloLayerId = "selected-station-halo";
+const selectedStationMarkerLayerId = "selected-station-marker";
+const unvisitedStationImageId = "station-star-fill-red";
+const visitedStationImageId = "station-star-fill-blue";
 
-const stationRadiusExpression: ExpressionSpecification = [
+const geographicLabelHaloWidthExpression: ExpressionSpecification = [
   "interpolate",
   ["linear"],
   ["zoom"],
   3,
-  2.4,
-  5,
-  3.2,
+  0,
+  4.25,
+  0,
+  5.5,
+  0.55,
   8,
-  4.5,
+  0.8,
   12,
-  6,
+  1,
 ];
 
-const stationStrokeWidthExpression: ExpressionSpecification = [
+const geographicLabelHaloBlurExpression: ExpressionSpecification = [
+  "interpolate",
+  ["linear"],
+  ["zoom"],
+  3,
+  0.05,
+  6,
+  0.15,
+  12,
+  0.25,
+];
+
+const stationIconSizeExpression: ExpressionSpecification = [
+  "interpolate",
+  ["linear"],
+  ["zoom"],
+  3,
+  0.27,
+  5,
+  0.32,
+  8,
+  0.4,
+  12,
+  0.52,
+];
+
+const selectedStationIconSizeExpression: ExpressionSpecification = [
   "interpolate",
   ["linear"],
   ["zoom"],
   3,
   0.5,
+  5,
+  0.58,
   8,
-  0.9,
+  0.7,
   12,
-  1.2,
+  0.86,
+];
+
+const selectedStationHaloRadiusExpression: ExpressionSpecification = [
+  "interpolate",
+  ["linear"],
+  ["zoom"],
+  3,
+  13,
+  5,
+  16,
+  8,
+  20,
+  12,
+  25,
+];
+
+const selectedStationOuterHaloRadiusExpression: ExpressionSpecification = [
+  "interpolate",
+  ["linear"],
+  ["zoom"],
+  3,
+  18,
+  5,
+  21,
+  8,
+  25,
+  12,
+  30,
 ];
 
 const stationHitAreaExpression: ExpressionSpecification = [
@@ -85,8 +153,11 @@ const templateMapColors = {
   road: "#7c4d35",
   roadMuted: "#797162",
   highwayStroke: "#99282f",
-  boundary: "#c9323b",
-  label: "#ffffff",
+  countryBoundary: "#789087",
+  stateBoundary: "#b5aa94",
+  selectedStateBoundary: "#234f47",
+  label: "#a3c0b1",
+  labelHalo: "rgba(255, 253, 242, 0.68)",
 } as const;
 
 const stationStatusColors = {
@@ -94,6 +165,31 @@ const stationStatusColors = {
   unvisited: "#C9323B",
   stroke: "#FFFDF2",
 } as const;
+
+const emptySelectedStationFilter: FilterSpecification = ["==", ["get", "id"], ""];
+
+function loadMapImage(map: mapboxgl.Map, url: string) {
+  return new Promise<ImageBitmap | HTMLImageElement | ImageData>((resolve, reject) => {
+    map.loadImage(url, (error, image) => {
+      if (error || !image) {
+        reject(error ?? new Error(`Map marker image could not be loaded: ${url}`));
+        return;
+      }
+
+      resolve(image);
+    });
+  });
+}
+
+async function addStationMarkerImages(map: mapboxgl.Map) {
+  const markerImages = await Promise.all([
+    loadMapImage(map, "/images/map/station-star-fill-red.png"),
+    loadMapImage(map, "/images/map/station-star-fill-blue.png"),
+  ]);
+
+  map.addImage(unvisitedStationImageId, markerImages[0], { pixelRatio: 3 });
+  map.addImage(visitedStationImageId, markerImages[1], { pixelRatio: 3 });
+}
 
 function getMapPadding(container: HTMLElement): PaddingOptions {
   const padding = container.clientWidth < 640 ? 16 : 30;
@@ -132,6 +228,22 @@ function applyTemplateBaseMapStyle(map: mapboxgl.Map) {
     const layerName = `${layerId} ${sourceLayerName}`;
 
     if (layer.type === "symbol") {
+      const isGeographicLabel =
+        sourceLayerName === "place_label" ||
+        sourceLayerName === "natural_label" ||
+        layerName.includes("country-label") ||
+        layerName.includes("state-label") ||
+        layerName.includes("settlement") ||
+        layerName.includes("continent-label");
+
+      if (isGeographicLabel) {
+        setPaintIfPresent(map, layer, "text-color", templateMapColors.label);
+        setPaintIfPresent(map, layer, "text-halo-width", geographicLabelHaloWidthExpression);
+        setPaintIfPresent(map, layer, "text-halo-blur", geographicLabelHaloBlurExpression);
+        setPaintIfPresent(map, layer, "text-halo-color", templateMapColors.labelHalo);
+        continue;
+      }
+
       if (
         layerName.includes("poi") ||
         layerName.includes("transit") ||
@@ -182,8 +294,16 @@ function applyTemplateBaseMapStyle(map: mapboxgl.Map) {
     }
 
     if (layerName.includes("admin") || layerName.includes("boundary")) {
-      setPaintIfPresent(map, layer, "line-color", templateMapColors.boundary);
-      setPaintIfPresent(map, layer, "line-width", 1.2);
+      const isCountryBoundary = layerName.includes("admin-0") || layerName.includes("country-boundary");
+
+      setPaintIfPresent(
+        map,
+        layer,
+        "line-color",
+        isCountryBoundary ? templateMapColors.countryBoundary : templateMapColors.stateBoundary,
+      );
+      setPaintIfPresent(map, layer, "line-width", isCountryBoundary ? 1.05 : 0.75);
+      setPaintIfPresent(map, layer, "line-opacity", isCountryBoundary ? 0.62 : 0.46);
       continue;
     }
 
@@ -220,6 +340,7 @@ export function SuperchargerMap({ stations, dataSource, dataError }: Supercharge
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const stationLookupRef = useRef(new Map<string, SuperchargerStation>());
   const geoJsonRef = useRef(stationsToGeoJson(stations));
+  const selectedStateGeoJsonRef = useRef(selectedStateToGeoJson(""));
   const [selectedState, setSelectedState] = useState("");
   const [selectedStation, setSelectedStation] = useState<SuperchargerStation | null>(null);
   const [loadError, setLoadError] = useState("");
@@ -234,6 +355,7 @@ export function SuperchargerMap({ stations, dataSource, dataError }: Supercharge
     [filteredStations],
   );
   const geoJson = useMemo(() => stationsToGeoJson(filteredStations), [filteredStations]);
+  const selectedStateGeoJson = useMemo(() => selectedStateToGeoJson(selectedState), [selectedState]);
   const localizedDataError = dataError
     ? dataError.kind === "empty"
       ? {
@@ -266,6 +388,10 @@ export function SuperchargerMap({ stations, dataSource, dataError }: Supercharge
   }, [geoJson]);
 
   useEffect(() => {
+    selectedStateGeoJsonRef.current = selectedStateGeoJson;
+  }, [selectedStateGeoJson]);
+
+  useEffect(() => {
     const container = mapContainerRef.current;
 
     if (!token || !container || mapRef.current) {
@@ -291,6 +417,7 @@ export function SuperchargerMap({ stations, dataSource, dataError }: Supercharge
         pitch: 0,
         minPitch: 0,
         maxPitch: 0,
+        cooperativeGestures: window.matchMedia("(hover: hover) and (pointer: fine)").matches,
         dragRotate: false,
         touchPitch: false,
       });
@@ -304,8 +431,35 @@ export function SuperchargerMap({ stations, dataSource, dataError }: Supercharge
     map.touchZoomRotate.disableRotation();
     map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
 
-    map.on("load", () => {
+    map.on("load", async () => {
       applyTemplateBaseMapStyle(map);
+
+      try {
+        await addStationMarkerImages(map);
+      } catch (error) {
+        setLoadError(error instanceof Error ? error.message : "Map marker images could not be loaded.");
+        return;
+      }
+
+      map.addSource(selectedStateBoundarySourceId, {
+        type: "geojson",
+        data: selectedStateGeoJsonRef.current,
+      });
+
+      map.addLayer({
+        id: selectedStateBoundaryLayerId,
+        type: "line",
+        source: selectedStateBoundarySourceId,
+        layout: {
+          "line-cap": "round",
+          "line-join": "round",
+        },
+        paint: {
+          "line-color": templateMapColors.selectedStateBoundary,
+          "line-opacity": 0.9,
+          "line-width": ["interpolate", ["linear"], ["zoom"], 3, 1.8, 6, 3, 9, 4],
+        },
+      });
 
       map.addSource(sourceId, {
         type: "geojson",
@@ -325,29 +479,86 @@ export function SuperchargerMap({ stations, dataSource, dataError }: Supercharge
 
       map.addLayer({
         id: unvisitedLayerId,
-        type: "circle",
+        type: "symbol",
         source: sourceId,
         filter: ["==", ["get", "visited"], false],
+        layout: {
+          "icon-allow-overlap": true,
+          "icon-ignore-placement": true,
+          "icon-image": unvisitedStationImageId,
+          "icon-size": stationIconSizeExpression,
+        },
         paint: {
-          "circle-color": stationStatusColors.unvisited,
-          "circle-opacity": 0.94,
-          "circle-radius": stationRadiusExpression,
-          "circle-stroke-color": stationStatusColors.stroke,
-          "circle-stroke-width": stationStrokeWidthExpression,
+          "icon-opacity": 0.96,
         },
       });
 
       map.addLayer({
         id: visitedLayerId,
-        type: "circle",
+        type: "symbol",
         source: sourceId,
         filter: ["==", ["get", "visited"], true],
+        layout: {
+          "icon-allow-overlap": true,
+          "icon-ignore-placement": true,
+          "icon-image": visitedStationImageId,
+          "icon-size": stationIconSizeExpression,
+        },
         paint: {
-          "circle-color": stationStatusColors.visited,
-          "circle-opacity": 0.94,
-          "circle-radius": stationRadiusExpression,
-          "circle-stroke-color": stationStatusColors.stroke,
-          "circle-stroke-width": stationStrokeWidthExpression,
+          "icon-opacity": 0.98,
+        },
+      });
+
+      map.addLayer({
+        id: selectedStationOuterHaloLayerId,
+        type: "circle",
+        source: sourceId,
+        filter: emptySelectedStationFilter,
+        paint: {
+          "circle-color": stationStatusColors.stroke,
+          "circle-opacity": 0.42,
+          "circle-radius": selectedStationOuterHaloRadiusExpression,
+          "circle-stroke-color": templateMapColors.countryBoundary,
+          "circle-stroke-opacity": 0.66,
+          "circle-stroke-width": 1.4,
+        },
+      });
+
+      map.addLayer({
+        id: selectedStationHaloLayerId,
+        type: "circle",
+        source: sourceId,
+        filter: emptySelectedStationFilter,
+        paint: {
+          "circle-color": stationStatusColors.stroke,
+          "circle-opacity": 0.9,
+          "circle-radius": selectedStationHaloRadiusExpression,
+          "circle-stroke-color": [
+            "case",
+            ["==", ["get", "visited"], true],
+            stationStatusColors.visited,
+            stationStatusColors.unvisited,
+          ],
+          "circle-stroke-opacity": 0.48,
+          "circle-stroke-width": 1.5,
+        },
+      });
+
+      map.addLayer({
+        id: selectedStationMarkerLayerId,
+        type: "symbol",
+        source: sourceId,
+        filter: emptySelectedStationFilter,
+        layout: {
+          "icon-allow-overlap": true,
+          "icon-ignore-placement": true,
+          "icon-image": [
+            "case",
+            ["==", ["get", "visited"], true],
+            visitedStationImageId,
+            unvisitedStationImageId,
+          ],
+          "icon-size": selectedStationIconSizeExpression,
         },
       });
 
@@ -422,6 +633,75 @@ export function SuperchargerMap({ stations, dataSource, dataError }: Supercharge
   }, [geoJson, mapLoaded]);
 
   useEffect(() => {
+    const source = mapRef.current?.getSource(selectedStateBoundarySourceId) as GeoJSONSource | undefined;
+
+    if (mapLoaded && source) {
+      source.setData(selectedStateGeoJson);
+    }
+  }, [mapLoaded, selectedStateGeoJson]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+
+    if (!mapLoaded || !map) {
+      return;
+    }
+
+    const selectedStateName = selectedState ? getStateName(selectedState) : "";
+    const selectedStateMatch: ExpressionSpecification = [
+      "any",
+      ["==", ["get", "iso_3166_2"], selectedState ? `US-${selectedState}` : ""],
+      ["==", ["get", "abbr"], selectedState],
+      ["==", ["get", "name_en"], selectedStateName],
+      ["==", ["get", "name"], selectedStateName],
+    ];
+
+    for (const layer of map.getStyle().layers ?? []) {
+      const sourceLayer = "source-layer" in layer ? layer["source-layer"] : "";
+      const isStateLabel =
+        layer.type === "symbol" &&
+        sourceLayer?.toLowerCase() === "place_label" &&
+        layer.id.toLowerCase().includes("state-label");
+
+      if (!isStateLabel) {
+        continue;
+      }
+
+      map.setPaintProperty(layer.id, "text-color", [
+        "case",
+        selectedStateMatch,
+        templateMapColors.selectedStateBoundary,
+        templateMapColors.label,
+      ]);
+      map.setPaintProperty(layer.id, "text-opacity", ["case", selectedStateMatch, 1, 0.5]);
+      map.setPaintProperty(layer.id, "text-halo-color", [
+        "case",
+        selectedStateMatch,
+        "rgba(255, 253, 242, 0.98)",
+        templateMapColors.labelHalo,
+      ]);
+    }
+  }, [mapLoaded, selectedState]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+
+    if (!mapLoaded || !map) {
+      return;
+    }
+
+    const selectedStationFilter: FilterSpecification = [
+      "==",
+      ["get", "id"],
+      selectedStation?.id ?? "",
+    ];
+
+    map.setFilter(selectedStationOuterHaloLayerId, selectedStationFilter);
+    map.setFilter(selectedStationHaloLayerId, selectedStationFilter);
+    map.setFilter(selectedStationMarkerLayerId, selectedStationFilter);
+  }, [mapLoaded, selectedStation]);
+
+  useEffect(() => {
     const map = mapRef.current;
     const container = mapContainerRef.current;
 
@@ -466,7 +746,7 @@ export function SuperchargerMap({ stations, dataSource, dataError }: Supercharge
             </div>
           ) : null}
 
-          <div className="relative mt-5 h-[620px] w-full overflow-hidden rounded-[18px] border border-[#a5e9dd]/28 bg-[#fdf4af] shadow-[0_22px_70px_rgba(12,48,45,0.28)] lg:h-[720px]">
+          <div className="relative mt-5 h-[620px] w-full overflow-hidden rounded-[18px] border border-brand-soft/30 bg-parchment shadow-[0_22px_70px_rgba(12,48,45,0.28)] lg:h-[720px]">
             {token ? (
               <>
                 <div
@@ -475,7 +755,7 @@ export function SuperchargerMap({ stations, dataSource, dataError }: Supercharge
                   aria-label={copy.map.interactiveLabel}
                 />
                 {loadError ? (
-                  <div className="absolute inset-0 bg-[#fdf4af]">
+                  <div className="absolute inset-0 bg-parchment">
                     <ConfigurationNotice
                       title={copy.map.mapLoadFailed}
                       message={language === "zh" ? copy.map.mapLoadFailedMessage : loadError}
@@ -535,10 +815,10 @@ function StationPanel({
   const statusLabel = station.status === "visited" ? copy.map.visited : copy.map.notVisited;
 
   return (
-    <aside className="absolute inset-x-3 bottom-3 max-h-[calc(100%-1.5rem)] overflow-y-auto rounded-[18px] border border-[#6fbeb2]/32 bg-[#fffdf2] p-5 text-ink shadow-xl sm:left-auto sm:right-4 sm:top-4 sm:bottom-auto sm:w-[340px]">
+    <aside className="absolute inset-x-3 bottom-3 max-h-[calc(100%-1.5rem)] overflow-y-auto rounded-[18px] border border-border bg-canvas p-5 text-ink shadow-xl sm:left-auto sm:right-4 sm:top-4 sm:bottom-auto sm:w-[340px]">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[14px] text-[#3d625f]">
+          <p className="text-[14px] text-ink-muted">
             {station.city}, {getLocalizedStateName(station.state, language)}
           </p>
           <h3 className="mt-1 text-[24px] font-semibold leading-[1.15]">{station.name}</h3>
@@ -555,21 +835,21 @@ function StationPanel({
       </div>
       <dl className="mt-5 grid gap-3 text-[15px] leading-[1.4]">
         <div>
-          <dt className="text-[#3d625f]">{copy.map.address}</dt>
+          <dt className="text-ink-muted">{copy.map.address}</dt>
           <dd>{station.address}{station.postalCode ? `, ${station.postalCode}` : ""}</dd>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <dt className="text-[#3d625f]">{copy.map.stallCount}</dt>
+            <dt className="text-ink-muted">{copy.map.stallCount}</dt>
             <dd>{station.stallCount ?? copy.map.unknown}</dd>
           </div>
           <div>
-            <dt className="text-[#3d625f]">{copy.map.maxPower}</dt>
+            <dt className="text-ink-muted">{copy.map.maxPower}</dt>
             <dd>{station.maxPowerKw ? `${station.maxPowerKw} kW` : copy.map.unknown}</dd>
           </div>
         </div>
         <div>
-          <dt className="text-[#3d625f]">{copy.map.lastUpdated}</dt>
+          <dt className="text-ink-muted">{copy.map.lastUpdated}</dt>
           <dd>{formatDisplayDate(station.lastUpdated, language)}</dd>
         </div>
       </dl>

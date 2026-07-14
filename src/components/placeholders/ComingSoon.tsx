@@ -17,15 +17,15 @@ export function ComingSoon({ title }: ComingSoonProps) {
       : title;
 
   return (
-    <main className="min-h-screen bg-parchment px-5 py-24 text-ink sm:px-8">
+    <main className="min-h-screen bg-surface-warm px-5 py-24 text-ink sm:px-8">
       <div className="mx-auto max-w-[760px]">
-        <Link href="/" className="text-[14px] text-action-blue">
+        <Link href="/" className="text-[14px] text-brand">
           {copy.placeholder.back}
         </Link>
         <h1 className="mt-12 text-[42px] font-semibold leading-[1.1] sm:text-[56px]">
           {localizedTitle}
         </h1>
-        <p className="mt-5 text-[21px] leading-[1.45] text-[#3d625f]">
+        <p className="mt-5 text-[21px] leading-[1.45] text-ink-muted">
           {copy.placeholder.comingSoon}
         </p>
       </div>

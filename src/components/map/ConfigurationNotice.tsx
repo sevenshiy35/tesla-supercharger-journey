@@ -25,7 +25,7 @@ export function ConfigurationNotice({
       className={
         isDark
           ? "border border-white/14 bg-white/[0.07] p-5 text-white"
-          : "flex h-full min-h-[620px] items-center justify-center bg-[#fdf4af] p-6 text-center text-ink lg:min-h-[720px]"
+          : "flex h-full min-h-[620px] items-center justify-center bg-parchment p-6 text-center text-ink lg:min-h-[720px]"
       }
     >
       <div className={isDark ? "flex max-w-[760px] items-start gap-3" : "max-w-[540px]"}>
@@ -38,7 +38,7 @@ export function ConfigurationNotice({
           <h3 className={isDark ? "text-[18px] font-semibold" : "mt-4 text-[28px] font-semibold leading-[1.15]"}>
             {title}
           </h3>
-          <p className={isDark ? "mt-1 text-[15px] leading-[1.5] text-white/70" : "mt-3 text-[17px] leading-[1.5] text-[#3d625f]"}>
+          <p className={isDark ? "mt-1 text-[15px] leading-[1.5] text-white/70" : "mt-3 text-[17px] leading-[1.5] text-ink-muted"}>
             {message}
           </p>
           {canRetry ? (

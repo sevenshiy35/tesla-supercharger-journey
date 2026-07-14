@@ -10,13 +10,13 @@ export function HeroSection() {
   return (
     <section
       id="journey"
-      className="relative flex min-h-screen items-center overflow-hidden bg-[#fffdf2] px-5 pb-14 pt-24 sm:px-8 lg:px-12"
+      className="relative flex min-h-screen items-center overflow-hidden bg-canvas px-5 pb-14 pt-24 sm:px-8 lg:px-12"
     >
       <div
         aria-hidden
         className="absolute inset-0 bg-[url('/images/hero/mesh-759.png')] bg-cover bg-center"
       />
-      <div aria-hidden className="absolute inset-0 bg-[#fffdf2]/10" />
+      <div aria-hidden className="absolute inset-0 bg-canvas/10" />
       <div className="relative z-10 mx-auto grid w-full max-w-[1360px] items-center gap-10 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)]">
         <div className="min-w-0 max-w-[720px] rounded-[28px] border border-white/48 bg-white/26 p-6 shadow-[0_24px_70px_rgba(23,63,60,0.16)] backdrop-blur-2xl sm:p-8">
           <p className="mb-4 text-[17px] font-semibold text-ink">{copy.hero.eyebrow}</p>
@@ -26,21 +26,18 @@ export function HeroSection() {
           <p className="mt-5 max-w-[620px] text-[21px] leading-[1.35] text-ink sm:text-[28px]">
             {copy.hero.tagline}
           </p>
-          <p className="mt-6 text-[17px] leading-[1.55] text-[#3d625f]">
-            {copy.hero.vehicle}
-          </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a
               role="button"
               href="#map"
-              className="inline-flex min-h-11 items-center rounded-full bg-action-blue px-6 text-[17px] text-white shadow-[0_10px_28px_rgba(52,144,139,0.24)] transition hover:bg-[#2b7773]"
+              className="inline-flex min-h-11 items-center rounded-full bg-brand px-6 text-[17px] text-white shadow-[0_10px_28px_rgba(52,144,139,0.24)] transition hover:bg-brand-strong"
             >
               {copy.hero.exploreMap}
             </a>
             <a
               role="button"
               href="#statistics"
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-action-blue px-6 text-[17px] text-action-blue transition hover:bg-[#a5e9dd]/35"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-brand px-6 text-[17px] text-brand transition hover:bg-brand-soft/70"
             >
               {copy.hero.viewProgress}
               <ArrowDown aria-hidden size={17} />

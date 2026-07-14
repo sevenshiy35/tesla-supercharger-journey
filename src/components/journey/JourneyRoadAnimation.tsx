@@ -12,25 +12,41 @@ type Direction =
   | "down-left"
   | "down-right";
 
-type MotionPhase = "drive" | "turn-in" | "reverse" | "depart";
+type RouteId = "charge" | "north" | "south" | "crossroads";
+type MotionPhase = "drive" | "reverse" | "connecting" | "charging" | "depart" | "reset";
+interface ImagePoint {
+  x: number;
+  y: number;
+}
 
-interface MotionSegment {
-  start: number;
-  end: number;
-  from: [number, number];
-  to: [number, number];
+interface MotionSample extends ImagePoint {
   direction: Direction;
+  moving: boolean;
   phase: MotionPhase;
 }
 
-const LOOP_DURATION = 34_500;
-const PARKED_AT = 14_500;
-const CABLE_START = 15_000;
-const CABLE_END = 16_500;
-const CHARGE_ICON_START = 16_200;
-const CHARGE_END = 22_500;
-const DEPARTURE_START = 23_000;
-const FADE_START = 33_000;
+const ART_WIDTH = 1819;
+const ART_HEIGHT = 865;
+const MOBILE_BREAKPOINT = 700;
+
+const ROUTE_DURATION: Record<RouteId, number> = {
+  charge: 30_000,
+  north: 17_000,
+  south: 18_500,
+  crossroads: 10_000,
+};
+
+const DESKTOP_ROUTE_SEQUENCE: RouteId[] = ["charge", "north", "south", "crossroads"];
+const MOBILE_ROUTE_SEQUENCE: RouteId[] = ["charge", "south", "crossroads"];
+
+const CHARGE_APPROACH_END = 9_500;
+const CHARGE_REVERSE_END = 12_000;
+const CABLE_START = 12_000;
+const CABLE_CONNECTED = 13_500;
+const CHARGE_ICON_START = 13_300;
+const CHARGE_END = 20_500;
+const DEPARTURE_START = 21_000;
+const DEPARTURE_END = 28_500;
 
 const directions: Direction[] = [
   "left",
@@ -44,83 +60,123 @@ const directions: Direction[] = [
 const spritePath = (direction: Direction, frame: number) =>
   `/images/journey-animation/car6-${direction}-${frame}.png`;
 
-const desktopSegments: MotionSegment[] = [
-  { start: 0, end: 1800, from: [94, 97], to: [91, 84], direction: "up-left", phase: "drive" },
-  { start: 1800, end: 3600, from: [91, 84], to: [87, 72], direction: "up-left", phase: "drive" },
-  { start: 3600, end: 5200, from: [87, 72], to: [86, 61], direction: "up-left", phase: "drive" },
-  { start: 5200, end: 6800, from: [86, 61], to: [90, 52], direction: "up-right", phase: "drive" },
-  { start: 6800, end: 8500, from: [90, 52], to: [87, 46], direction: "up-left", phase: "drive" },
-  { start: 8500, end: 10_000, from: [87, 46], to: [82, 43], direction: "left", phase: "turn-in" },
-  { start: 10_000, end: 11_500, from: [82, 43], to: [78.5, 41.5], direction: "up-left", phase: "turn-in" },
-  // The car keeps facing up-left while its position moves down-right: this is the reverse-parking beat.
-  { start: 11_500, end: PARKED_AT, from: [78.5, 41.5], to: [80.8, 45.5], direction: "up-left", phase: "reverse" },
-  { start: DEPARTURE_START, end: 24_500, from: [80.8, 45.5], to: [87, 46], direction: "right", phase: "depart" },
-  { start: 24_500, end: 26_500, from: [87, 46], to: [90, 55], direction: "down-right", phase: "depart" },
-  { start: 26_500, end: 28_500, from: [90, 55], to: [87, 65], direction: "down-left", phase: "depart" },
-  { start: 28_500, end: 31_000, from: [87, 65], to: [91, 78], direction: "down-right", phase: "depart" },
-  { start: 31_000, end: FADE_START, from: [91, 78], to: [95, 94], direction: "down-right", phase: "depart" },
-];
-
-const mobileSegments: MotionSegment[] = [
-  { start: 0, end: 2200, from: [98, 91], to: [94, 72], direction: "up-left", phase: "drive" },
-  { start: 2200, end: 4500, from: [94, 72], to: [92, 59], direction: "up-left", phase: "drive" },
-  { start: 4500, end: 6500, from: [92, 59], to: [94, 50], direction: "up-right", phase: "drive" },
-  { start: 6500, end: 8500, from: [94, 50], to: [88, 45], direction: "up-left", phase: "drive" },
-  { start: 8500, end: 10_000, from: [88, 45], to: [80, 42], direction: "left", phase: "turn-in" },
-  { start: 10_000, end: 11_500, from: [80, 42], to: [72, 40.5], direction: "up-left", phase: "turn-in" },
-  { start: 11_500, end: PARKED_AT, from: [72, 40.5], to: [74, 44], direction: "up-left", phase: "reverse" },
-  { start: DEPARTURE_START, end: 24_500, from: [74, 44], to: [88, 45], direction: "right", phase: "depart" },
-  { start: 24_500, end: 27_000, from: [88, 45], to: [94, 57], direction: "down-right", phase: "depart" },
-  { start: 27_000, end: 29_500, from: [94, 57], to: [91, 70], direction: "down-left", phase: "depart" },
-  { start: 29_500, end: FADE_START, from: [91, 70], to: [98, 90], direction: "down-right", phase: "depart" },
-];
-
 const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, value));
 
-const easeInOut = (value: number) =>
-  value < 0.5 ? 2 * value * value : 1 - Math.pow(-2 * value + 2, 2) / 2;
+const easeInOutCubic = (value: number) =>
+  value < 0.5 ? 4 * value * value * value : 1 - Math.pow(-2 * value + 2, 3) / 2;
 
-function sampleMotion(elapsed: number, segments: MotionSegment[]) {
-  const segment = segments.find(({ start, end }) => elapsed >= start && elapsed < end);
+function directionFromVector(dx: number, dy: number): Direction {
+  const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
 
-  if (!segment) {
-    if (elapsed >= PARKED_AT && elapsed < DEPARTURE_START) {
-      const parkedX = segments === mobileSegments ? 74 : 80.8;
-      const parkedY = segments === mobileSegments ? 44 : 45.5;
-      return {
-        x: parkedX,
-        y: parkedY,
-        direction: "up-left",
-        phase: "parked",
-        moving: false,
-      } as const;
-    }
+  if (angle >= -22.5 && angle < 22.5) return "right";
+  if (angle >= 22.5 && angle < 90) return "down-right";
+  if (angle >= 90 && angle < 157.5) return "down-left";
+  if (angle >= 157.5 || angle < -157.5) return "left";
+  if (angle >= -157.5 && angle < -90) return "up-left";
+  return "up-right";
+}
 
-    const finalSegment = segments[segments.length - 1];
-    return {
-      x: finalSegment.to[0],
-      y: finalSegment.to[1],
-      direction: finalSegment.direction,
-      phase: elapsed < FADE_START ? "parked" : "reset",
-      moving: false,
-    } as const;
+function sampleSvgPath(path: SVGPathElement, progress: number, phase: MotionPhase): MotionSample {
+  const length = path.getTotalLength();
+  const distance = clamp(progress) * length;
+  const point = path.getPointAtLength(distance);
+  const tangentWindow = Math.max(2, length * 0.006);
+  const before = path.getPointAtLength(Math.max(0, distance - tangentWindow));
+  const after = path.getPointAtLength(Math.min(length, distance + tangentWindow));
+
+  return {
+    x: point.x,
+    y: point.y,
+    direction: directionFromVector(after.x - before.x, after.y - before.y),
+    moving: true,
+    phase,
+  };
+}
+
+function mapImagePoint(point: ImagePoint, scene: HTMLDivElement, mobile: boolean) {
+  const rect = scene.getBoundingClientRect();
+  const scale = Math.max(rect.width / ART_WIDTH, rect.height / ART_HEIGHT);
+  const renderedWidth = ART_WIDTH * scale;
+  const renderedHeight = ART_HEIGHT * scale;
+  const horizontalPosition = mobile ? 0.86 : 0.5;
+
+  return {
+    x: (rect.width - renderedWidth) * horizontalPosition + point.x * scale,
+    y: (rect.height - renderedHeight) * 0.5 + point.y * scale,
+    scale,
+  };
+}
+
+function sampleChargeRoute(
+  elapsed: number,
+  paths: Record<"chargeApproach" | "chargeReverse" | "chargeDepart", SVGPathElement>,
+): MotionSample {
+  if (elapsed < CHARGE_APPROACH_END) {
+    return sampleSvgPath(
+      paths.chargeApproach,
+      easeInOutCubic(elapsed / CHARGE_APPROACH_END),
+      "drive",
+    );
   }
 
-  const progress = easeInOut(clamp((elapsed - segment.start) / (segment.end - segment.start)));
+  if (elapsed < CHARGE_REVERSE_END) {
+    const sample = sampleSvgPath(
+      paths.chargeReverse,
+      easeInOutCubic((elapsed - CHARGE_APPROACH_END) / (CHARGE_REVERSE_END - CHARGE_APPROACH_END)),
+      "reverse",
+    );
+
+    // The position travels up-left while the car keeps facing out of the stall.
+    return { ...sample, direction: "down-right" };
+  }
+
+  if (elapsed < DEPARTURE_START) {
+    const parked = paths.chargeReverse.getPointAtLength(paths.chargeReverse.getTotalLength());
+    return {
+      x: parked.x,
+      y: parked.y,
+      direction: "down-right",
+      moving: false,
+      phase: elapsed < CABLE_CONNECTED ? "connecting" : "charging",
+    };
+  }
+
+  if (elapsed < DEPARTURE_END) {
+    return sampleSvgPath(
+      paths.chargeDepart,
+      easeInOutCubic((elapsed - DEPARTURE_START) / (DEPARTURE_END - DEPARTURE_START)),
+      "depart",
+    );
+  }
+
+  const finalPoint = paths.chargeDepart.getPointAtLength(paths.chargeDepart.getTotalLength());
   return {
-    x: segment.from[0] + (segment.to[0] - segment.from[0]) * progress,
-    y: segment.from[1] + (segment.to[1] - segment.from[1]) * progress,
-    direction: segment.direction,
-    phase: segment.phase,
-    moving: true,
-  } as const;
+    x: finalPoint.x,
+    y: finalPoint.y,
+    direction: "left",
+    moving: false,
+    phase: "reset",
+  };
+}
+
+function normalRouteProgress(elapsed: number, duration: number) {
+  const driveDuration = duration - 1_200;
+  return easeInOutCubic(clamp(elapsed / driveDuration));
 }
 
 export function JourneyRoadAnimation() {
   const sceneRef = useRef<HTMLDivElement>(null);
   const carRef = useRef<HTMLDivElement>(null);
+  const chargerRef = useRef<HTMLDivElement>(null);
   const cableRef = useRef<HTMLDivElement>(null);
   const chargeIconRef = useRef<HTMLDivElement>(null);
+
+  const chargeApproachRef = useRef<SVGPathElement>(null);
+  const chargeReverseRef = useRef<SVGPathElement>(null);
+  const chargeDepartRef = useRef<SVGPathElement>(null);
+  const northRef = useRef<SVGPathElement>(null);
+  const southRef = useRef<SVGPathElement>(null);
+  const crossroadsRef = useRef<SVGPathElement>(null);
 
   useEffect(() => {
     directions.forEach((direction) => {
@@ -132,77 +188,168 @@ export function JourneyRoadAnimation() {
 
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     let animationFrame = 0;
-    const startedAt = performance.now();
+    let routeIndex = 0;
+    let routeStartedAt = performance.now();
+    let previousMobile = window.innerWidth <= MOBILE_BREAKPOINT;
+    const query = new URLSearchParams(window.location.search);
+    const requestedRoute = query.get("journeyRoute");
+    const forcedRoute = (["charge", "north", "south", "crossroads"] as RouteId[]).includes(
+      requestedRoute as RouteId,
+    )
+      ? (requestedRoute as RouteId)
+      : null;
+    const requestedTime = query.get("journeyTime");
+    const parsedTime = requestedTime === null ? Number.NaN : Number(requestedTime);
+    const forcedElapsed = Number.isFinite(parsedTime) ? Math.max(0, parsedTime) : null;
+
+    const getPaths = () => {
+      const chargeApproach = chargeApproachRef.current;
+      const chargeReverse = chargeReverseRef.current;
+      const chargeDepart = chargeDepartRef.current;
+      const north = northRef.current;
+      const south = southRef.current;
+      const crossroads = crossroadsRef.current;
+
+      if (!chargeApproach || !chargeReverse || !chargeDepart || !north || !south || !crossroads) {
+        return null;
+      }
+
+      return { chargeApproach, chargeReverse, chargeDepart, north, south, crossroads };
+    };
+
+    const placeChargingHardware = (scene: HTMLDivElement, mobile: boolean) => {
+      const charger = chargerRef.current;
+      const cable = cableRef.current;
+      if (!charger || !cable) return;
+
+      const chargerPoint = mapImagePoint({ x: 1306, y: 394 }, scene, mobile);
+      const cablePoint = mapImagePoint({ x: 1340, y: 413 }, scene, mobile);
+
+      charger.style.left = `${chargerPoint.x}px`;
+      charger.style.top = `${chargerPoint.y}px`;
+      charger.style.width = `${clamp(50 * chargerPoint.scale, mobile ? 30 : 38, 58)}px`;
+
+      cable.style.left = `${cablePoint.x}px`;
+      cable.style.top = `${cablePoint.y}px`;
+      cable.style.width = `${clamp(80 * cablePoint.scale, 68, 98)}px`;
+    };
 
     const renderParkedState = (mobile: boolean) => {
+      const scene = sceneRef.current;
       const car = carRef.current;
       const cable = cableRef.current;
       const chargeIcon = chargeIconRef.current;
-      const scene = sceneRef.current;
-      if (!car || !cable || !chargeIcon || !scene) return;
+      const paths = getPaths();
+      if (!scene || !car || !cable || !chargeIcon || !paths) return;
 
-      const x = mobile ? 74 : 80.8;
-      const y = mobile ? 44 : 45.5;
-      car.style.left = `${x}%`;
-      car.style.top = `${y}%`;
+      const parked = paths.chargeReverse.getPointAtLength(paths.chargeReverse.getTotalLength());
+      const mapped = mapImagePoint(parked, scene, mobile);
+      placeChargingHardware(scene, mobile);
+
+      car.style.left = `${mapped.x}px`;
+      car.style.top = `${mapped.y}px`;
       car.style.opacity = "1";
-      car.style.backgroundImage = `url("${spritePath("up-left", 0)}")`;
-      car.dataset.direction = "up-left";
+      car.style.backgroundImage = `url("${spritePath("down-right", 0)}")`;
+      car.dataset.direction = "down-right";
       car.dataset.frame = "0";
       car.dataset.phase = "charging";
+
       cable.style.opacity = "1";
       cable.style.clipPath = "inset(0)";
-      chargeIcon.style.left = `${x}%`;
-      chargeIcon.style.top = `${y - (mobile ? 4 : 8)}%`;
+
+      chargeIcon.style.left = `${mapped.x}px`;
+      chargeIcon.style.top = `${mapped.y - clamp(72 * mapped.scale, 44, 78)}px`;
       chargeIcon.dataset.visible = "true";
+
+      scene.dataset.route = "charge";
       scene.dataset.phase = "charging";
     };
 
     const tick = (now: number) => {
+      const scene = sceneRef.current;
       const car = carRef.current;
       const cable = cableRef.current;
       const chargeIcon = chargeIconRef.current;
-      const scene = sceneRef.current;
-      if (!car || !cable || !chargeIcon || !scene) return;
+      const paths = getPaths();
+      if (!scene || !car || !cable || !chargeIcon || !paths) return;
 
-      const mobile = window.innerWidth <= 700;
+      const mobile = window.innerWidth <= MOBILE_BREAKPOINT;
       if (reducedMotion.matches) {
         renderParkedState(mobile);
         return;
       }
 
-      const elapsed = (now - startedAt) % LOOP_DURATION;
-      const motion = sampleMotion(elapsed, mobile ? mobileSegments : desktopSegments);
-      const spriteFrame = motion.moving ? Math.floor(elapsed / (motion.phase === "reverse" ? 210 : 145)) % 3 : 0;
-      const charging = elapsed >= CABLE_END && elapsed < CHARGE_END;
-      const connecting = elapsed >= PARKED_AT && elapsed < CABLE_END;
-      const phase = charging ? "charging" : connecting ? "connecting" : motion.phase;
+      const routeSequence = mobile ? MOBILE_ROUTE_SEQUENCE : DESKTOP_ROUTE_SEQUENCE;
+      if (mobile !== previousMobile) {
+        routeIndex = 0;
+        routeStartedAt = now;
+        previousMobile = mobile;
+      }
 
-      car.style.left = `${motion.x}%`;
-      car.style.top = `${motion.y}%`;
+      let route = forcedRoute ?? routeSequence[routeIndex % routeSequence.length];
+      let elapsed = forcedElapsed ?? now - routeStartedAt;
+      while (!forcedRoute && elapsed >= ROUTE_DURATION[route]) {
+        routeStartedAt += ROUTE_DURATION[route];
+        routeIndex = (routeIndex + 1) % routeSequence.length;
+        route = routeSequence[routeIndex];
+        elapsed = now - routeStartedAt;
+      }
+
+      elapsed %= ROUTE_DURATION[route];
+
+      let motion: MotionSample;
+      if (route === "charge") {
+        motion = sampleChargeRoute(elapsed, paths);
+      } else {
+        motion = sampleSvgPath(
+          paths[route],
+          normalRouteProgress(elapsed, ROUTE_DURATION[route]),
+          "drive",
+        );
+      }
+
+      const mapped = mapImagePoint(motion, scene, mobile);
+      const routeFadeOutAt = ROUTE_DURATION[route] - 1_000;
+      const opacity =
+        elapsed < 450
+          ? clamp(elapsed / 450)
+          : elapsed > routeFadeOutAt
+            ? 1 - clamp((elapsed - routeFadeOutAt) / 850)
+            : 1;
+      const spriteFrame = motion.moving
+        ? Math.floor(elapsed / (motion.phase === "reverse" ? 220 : 150)) % 3
+        : 0;
+
+      car.style.left = `${mapped.x}px`;
+      car.style.top = `${mapped.y}px`;
+      car.style.opacity = `${opacity}`;
       car.style.backgroundImage = `url("${spritePath(motion.direction, spriteFrame)}")`;
-      car.style.opacity = `${
-        elapsed < 500 ? clamp(elapsed / 500) : elapsed >= FADE_START ? 1 - clamp((elapsed - FADE_START) / 1500) : 1
-      }`;
       car.dataset.direction = motion.direction;
       car.dataset.frame = `${spriteFrame}`;
-      car.dataset.phase = phase;
+      car.dataset.phase = motion.phase;
+
+      placeChargingHardware(scene, mobile);
 
       const cableProgress =
-        elapsed < CABLE_END
-          ? clamp((elapsed - CABLE_START) / (CABLE_END - CABLE_START))
-          : elapsed < CHARGE_END
-            ? 1
-            : 1 - clamp((elapsed - CHARGE_END) / (DEPARTURE_START - CHARGE_END));
+        route !== "charge" || elapsed < CABLE_START
+          ? 0
+          : elapsed < CABLE_CONNECTED
+            ? clamp((elapsed - CABLE_START) / (CABLE_CONNECTED - CABLE_START))
+            : elapsed < CHARGE_END
+              ? 1
+              : 1 - clamp((elapsed - CHARGE_END) / (DEPARTURE_START - CHARGE_END));
+
       cable.style.opacity = cableProgress > 0 ? "1" : "0";
       cable.style.clipPath = `inset(0 0 0 ${100 - cableProgress * 100}%)`;
 
-      const iconVisible = elapsed >= CHARGE_ICON_START && elapsed < CHARGE_END;
-      chargeIcon.style.left = `${motion.x}%`;
-      chargeIcon.style.top = `${motion.y - (mobile ? 4 : 8)}%`;
+      const iconVisible =
+        route === "charge" && elapsed >= CHARGE_ICON_START && elapsed < CHARGE_END;
+      chargeIcon.style.left = `${mapped.x}px`;
+      chargeIcon.style.top = `${mapped.y - clamp(72 * mapped.scale, 44, 78)}px`;
       chargeIcon.dataset.visible = iconVisible ? "true" : "false";
-      scene.dataset.phase = phase;
 
+      scene.dataset.route = route;
+      scene.dataset.phase = motion.phase;
       animationFrame = window.requestAnimationFrame(tick);
     };
 
@@ -211,9 +358,9 @@ export function JourneyRoadAnimation() {
   }, []);
 
   return (
-    <div ref={sceneRef} aria-hidden className={styles.scene} data-phase="drive">
+    <div ref={sceneRef} aria-hidden className={styles.scene} data-route="charge" data-phase="drive">
       <Image
-        src="/images/journey-animation/road-map-parking-background.png"
+        src="/images/journey-animation/route-atlas-background-v2.png"
         alt=""
         fill
         priority
@@ -223,7 +370,40 @@ export function JourneyRoadAnimation() {
 
       <div className={styles.readabilityWash} />
 
-      <div className={styles.charger}>
+      <svg className={styles.motionPaths} viewBox={`0 0 ${ART_WIDTH} ${ART_HEIGHT}`}>
+        <path
+          ref={chargeApproachRef}
+          data-path-id="charge-approach"
+          d="M 1819 135 L 1425 135 L 1425 235 C 1425 275 1460 295 1510 322 L 1575 356 C 1600 370 1608 392 1608 425 L 1608 530 C 1608 555 1592 570 1550 590"
+        />
+        <path
+          ref={chargeReverseRef}
+          data-path-id="charge-reverse"
+          d="M 1550 590 C 1572 574 1590 560 1605 552 C 1545 523 1465 480 1360 420"
+        />
+        <path
+          ref={chargeDepartRef}
+          data-path-id="charge-depart"
+          d="M 1360 420 C 1455 478 1535 520 1605 555 C 1560 605 1450 623 1415 655 C 1385 685 1455 700 1505 725 C 1530 738 1536 760 1536 812 L 1408 817"
+        />
+        <path
+          ref={northRef}
+          data-path-id="north-route"
+          d="M 90 770 L 90 470 C 90 445 105 435 130 435 L 180 435 C 195 435 200 425 200 408 L 200 315 C 200 295 208 282 225 271 L 550 70 L 1015 70 C 1065 70 1080 82 1110 112 C 1125 127 1145 135 1170 135 L 1819 135"
+        />
+        <path
+          ref={southRef}
+          data-path-id="south-route"
+          d="M 1425 0 L 1425 220 C 1425 238 1428 250 1438 257 L 1580 335 C 1598 345 1608 355 1608 375 L 1608 510 C 1608 535 1600 552 1580 562 L 1432 625 C 1405 642 1405 657 1432 671 L 1495 702 C 1520 714 1536 730 1536 760 L 1536 817 L 1408 817 L 606 815 C 575 790 560 780 520 780 L 145 780 C 110 780 90 765 90 735 L 90 445"
+        />
+        <path
+          ref={crossroadsRef}
+          data-path-id="crossroads-route"
+          d="M 1425 0 L 1425 135 L 1819 135"
+        />
+      </svg>
+
+      <div ref={chargerRef} className={styles.charger}>
         <Image
           src="/images/journey-animation/supercharger-sprite.png"
           alt=""
@@ -233,7 +413,13 @@ export function JourneyRoadAnimation() {
         />
       </div>
 
-      <div ref={carRef} className={styles.car} data-direction="up-left" data-frame="0" data-phase="drive" />
+      <div
+        ref={carRef}
+        className={styles.car}
+        data-direction="left"
+        data-frame="0"
+        data-phase="drive"
+      />
 
       <div ref={cableRef} className={styles.cable}>
         <Image

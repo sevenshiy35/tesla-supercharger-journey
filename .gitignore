@@ -21,6 +21,7 @@ pnpm-debug.log*
 dev-server.log
 dev-server*.log
 nlr-dev-server.log
+design-qa-artifacts/*.log
 
 # env
 .env

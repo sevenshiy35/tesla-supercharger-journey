@@ -1,57 +1,52 @@
-**Findings**
-- No P0/P1/P2 findings remain.
+# Homepage Cinematic Journey Integration — Design QA
 
-**Source Visual Truth**
-- User reference: `design-qa-artifacts/journey-six-direction-user-reference.png`.
-- Required behavior: six redrawn vehicle directions (left, right, up-left, up-right, down-left, down-right), three suspension frames per direction, a connected charging branch with a marked parking bay, reverse parking, cable connection, and a charging icon above the car.
+## Evidence
 
-**Implementation Evidence**
-- Component: `src/components/journey/JourneyRoadAnimation.tsx`.
-- Animation styles: `src/components/journey/JourneyRoadAnimation.module.css`.
-- Six-direction source sheet: `design-qa-artifacts/car-six-direction-spritesheet-source.png`.
-- Processed-frame contact sheet: `design-qa-artifacts/car-six-direction-frames-contact-sheet.png`.
-- Reverse-parking screenshot: `design-qa-artifacts/journey-six-direction-reverse.png`.
-- Charging screenshot: `design-qa-artifacts/journey-six-direction-charging.png`.
-- Departure screenshot: `design-qa-artifacts/journey-six-direction-depart.png`.
-- Mobile charging screenshot: `design-qa-artifacts/journey-six-direction-mobile-charging.png`.
-- Full-view comparison: `design-qa-artifacts/journey-six-direction-comparison.png`.
-- Focused branch comparison: `design-qa-artifacts/journey-six-direction-focused-comparison.png`.
-- Desktop viewport: 1440 x 900.
-- Mobile viewport: 390 x 844 with a 375px document width and no horizontal overflow.
-- Browser sampling covered a complete 34.5-second loop and observed all six directions, all behavior phases, and 16 of the 18 direction/frame combinations; the remaining two frame files were alpha-validated in the full 18-frame asset set.
-- Observed phases: drive, turn-in, reverse, connecting, charging, parked, depart, and reset.
-- Console errors checked: none on desktop or mobile.
+- Source visual truth: `design-qa-artifacts/cinematic-road-trip-desktop-1440-final-v3.png`
+- Browser-rendered desktop implementation: `design-qa-artifacts/home-cinematic-second-section-desktop-final.png`
+- Browser-rendered mobile implementation: `design-qa-artifacts/home-cinematic-second-section-mobile-final.png`
+- Full-view comparison: `design-qa-artifacts/home-cinematic-integration-comparison-final.png`
+- Focused scene/card comparison: `design-qa-artifacts/home-cinematic-integration-focused-comparison-final.png`
+- Previous root QA report archive: `design-qa-artifacts/design-qa-before-home-cinematic-integration.md`
+- Viewports checked: 1440 × 900, 1024 × 768, 768 × 900, 430 × 932, and 390 × 844
+- State: Chinese locale; New York initial scene; California and Utah manual scene selection; automatic image rotation enabled; live homepage journey summary
 
-**Required Fidelity Surfaces**
-- Fonts and typography: the existing SF Pro/PingFang system stack, sizing, weight, line height, and journey copy remain unchanged. The cream content surfaces preserve readable dark-teal copy over the animated map.
-- Spacing and layout rhythm: the central copy zone remains calm. The desktop charging vignette sits outside the paragraph card; mobile keeps a dedicated animation gap between the paragraph and metrics surfaces.
-- Colors and visual tokens: the background, six-direction sprites, charger, cable, and charging badge preserve the cream, parchment, deep teal, white, red, turquoise, and warm-yellow palette of the reference.
-- Image quality and asset fidelity: the car uses 18 real transparent raster frames rather than CSS rotation. The connected branch, parking stall, charger, cable, and battery badge are generated raster assets with validated transparent borders and no green chroma residue.
-- Copy and content: journey copy, statistics, localization behavior, and data-source label are unchanged.
-- Accessibility: the scene remains `aria-hidden`; reduced-motion users receive a static parked-and-charging state with the cable and badge visible.
+The approved standalone cinematic prototype is the source direction. The homepage implementation intentionally removes the Model Y layer, vehicle timeline, and development controls while retaining the three illustrations, stable introduction card, live statistics, location title, crossfade, and scene indicators.
 
-**Comparison History**
-- Initial P1: one high-detail car image was rotated around curves, producing rigid movement and incorrect viewpoints. Fix: replaced it with six independently drawn directions and three suspension-deformation frames per direction, then switched frames at 145–210ms intervals. Post-fix evidence: `design-qa-artifacts/car-six-direction-frames-contact-sheet.png`; browser sampling observed left, right, up-left, up-right, down-left, and down-right in one loop.
-- Initial P1: the charger floated beside the main road and the car jumped directly to charging. Fix: replaced the background with a physically connected side branch and marked parking stall, then split the sequence into approach, turn-in, forward overshoot, reverse down-right while facing up-left, cable connection, charging, exit, and departure. Post-fix evidence: `design-qa-artifacts/journey-six-direction-reverse.png` and `design-qa-artifacts/journey-six-direction-focused-comparison.png`.
-- Initial P2: the desktop paragraph surface partly hid the parked car and charging badge. Fix: shifted the final parking coordinates, charger, and cable to the right half of the bay. Post-fix evidence: `design-qa-artifacts/journey-six-direction-charging.png`.
-- Initial P2: the mobile paragraph surface covered the charging badge. Fix: moved the badge to the visible gap directly above the parked car. Post-fix evidence: `design-qa-artifacts/journey-six-direction-mobile-charging.png`.
+## Findings
 
-**Open Questions**
-- None blocking this iteration.
+- No actionable P0, P1, or P2 differences remain.
+- The homepage second section now carries the approved dark editorial frame, blue-hour travel illustration, warm ivory cards, serif hierarchy, location title, and compact scene indicators.
+- The Model Y is absent from the DOM and no vehicle, charging cable, charger sprite, or Model Y image resource is loaded by the homepage section.
+- The introduction remains connected to the existing language copy, and the three statistics remain connected to the existing live `JourneySummary` values rather than prototype mock data.
+- Desktop and 1024 px tablet keep the information panel over the left side of the scene. At 820 px and below, the illustration becomes a 4:5 frame and the cards move below it.
+- 390 px and 430 px layouts have no horizontal overflow. Browser measurements were `innerWidth: 390 / scrollWidth: 375` and `innerWidth: 430 / scrollWidth: 415`; the 15 px difference is the vertical scrollbar.
 
-**Implementation Checklist**
-- [x] Six directions implemented and used in the live route.
-- [x] Three suspension frames per direction implemented.
-- [x] Connected parking branch and marked stall installed.
-- [x] Forward setup and reverse-parking phases implemented.
-- [x] Cable extension/retraction implemented.
-- [x] Charging badge shown above the parked car.
-- [x] Desktop and mobile browser checks completed.
-- [x] Reduced-motion fallback retained.
-- [x] Production build, typecheck, lint, and 69 tests passed.
+## Required Fidelity Surfaces
 
-**Follow-up Polish**
-- [P3] The six-direction sheet is intentionally a little more detailed than the map terrain; a future bespoke pixel pass could reduce highlight clusters by another 10–15% for a stricter retro look.
+- **Fonts and typography:** Georgia/Times/Songti display typography preserves the cinematic editorial tone; existing SF/PingFang/system sans fallbacks remain in body copy and labels. Chinese headline sizing was reduced at desktop so it holds one intentional line rather than leaving a single orphan character.
+- **Spacing and layout rhythm:** The section uses the site's 1360 px content width, generous page padding, rounded image frame, compact glass cards, and existing section-to-section flow. Mobile cards are separated from the image for readability.
+- **Colors and visual tokens:** Deep navy, warm ivory, muted copper, cobalt water, violet sky, and warm city lights match the selected prototype. The following map section keeps its existing green palette unchanged.
+- **Image quality and asset fidelity:** The homepage loads the same compressed local WebP illustrations as the approved prototype. New York uses its dedicated mobile bridge crop; California and Utah use responsive crops of their source illustrations. No placeholders or code-drawn substitutes are present.
+- **Copy and content:** Existing translated introduction and live station/state/mileage labels are preserved. New section heading, scene title, subtitle, and button labels switch between English and Chinese.
 
-**Final Result**
-- final result: passed
+## Runtime Checks
+
+- New York renders first without hydration drift.
+- New York, California, and Utah indicator buttons switch scenes and update `aria-current` and the live title.
+- The next scene preloads, the automatic rotation pauses outside the viewport, and reduced motion disables automatic rotation and crossfade animation.
+- Vehicle elements in the homepage section: `0`; vehicle image resources loaded by the homepage section: `0`.
+- Browser console errors: none.
+- Browser console warnings introduced by this section: none. The full homepage still emits the existing downstream Mapbox GL container warning, which is unrelated to this replacement.
+- ESLint, TypeScript, and the production Next.js build pass.
+
+## Comparison History
+
+1. First mobile pass exposed a P1 blank-scene issue: New York had a dedicated mobile image, but the shared mobile rule also hid the only image for California and Utah.
+2. The desktop image is now hidden only when that scene actually has a mobile alternative. California and Utah retain their original illustration with mobile object positioning.
+3. Browser verification after the fix confirmed visible California and Utah images at 390 px, correct titles and active indicators, and no horizontal overflow.
+4. Final full-view and focused comparisons confirm that the approved illustration/card direction is preserved while the vehicle animation is intentionally excluded.
+
+## Final Result
+
+final result: passed
