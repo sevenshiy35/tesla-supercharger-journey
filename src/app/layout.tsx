@@ -1,6 +1,18 @@
 import type { Metadata, Viewport } from "next";
+import localFont from "next/font/local";
 import { LanguageProvider } from "@/i18n/LanguageProvider";
 import "./globals.css";
+
+const huiwenMincho = localFont({
+  src: "../../匯文明朝體.ttf",
+  variable: "--font-huiwen-mincho",
+  display: "swap",
+  weight: "400",
+  style: "normal",
+  preload: false,
+  fallback: [],
+  adjustFontFallback: false,
+});
 
 export const metadata: Metadata = {
   title: "MyTesla2026Journey",
@@ -18,8 +30,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body>
+    <html className={huiwenMincho.variable} lang="en" suppressHydrationWarning>
+      <body className="font-ui">
         <LanguageProvider>{children}</LanguageProvider>
       </body>
     </html>

@@ -46,7 +46,7 @@ export function ProgressStats({ stations, selectedState }: ProgressStatsProps) {
       ];
 
   return (
-    <aside id="statistics" className="border border-[#a5e9dd]/24 bg-[#a5e9dd]/10 p-5 text-white sm:p-6">
+    <aside id="statistics" className="border border-[#a5e9dd]/24 bg-[#a5e9dd]/10 p-5 font-ui text-white sm:p-6">
       <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
         <div>
           <p className="text-[14px] text-white/66">{copy.progress.eyebrow}</p>
@@ -57,7 +57,7 @@ export function ProgressStats({ stations, selectedState }: ProgressStatsProps) {
           </h3>
         </div>
         <div className="border-t border-white/12 pt-5 md:min-w-[280px] md:border-t-0 md:border-l md:pt-0 md:pl-8">
-          <div className="text-[40px] font-semibold leading-none">
+          <div className="font-data text-[40px] font-semibold leading-none">
             {activeSummary.visitedStations.toLocaleString(locale)} /{" "}
             {activeSummary.totalStations.toLocaleString(locale)}
           </div>
@@ -73,7 +73,7 @@ export function ProgressStats({ stations, selectedState }: ProgressStatsProps) {
               <Icon aria-hidden className="mt-0.5 text-action-blue-dark" size={18} />
               <div>
                 <dt className="text-[13px] leading-[1.35] text-white/58">{row.label}</dt>
-                <dd className="mt-1 text-[17px] leading-[1.35] text-white">{row.value}</dd>
+                <dd className="mt-1 font-data text-[17px] leading-[1.35] text-white">{row.value}</dd>
               </div>
             </div>
           );

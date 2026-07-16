@@ -1,5 +1,7 @@
 import "server-only";
 
+import { requireAdmin } from "@/lib/auth/admin";
+import { loadAdminPayToParkStationIds } from "@/lib/stations/admin-preferences";
 import { createClient } from "@/lib/supabase/server";
 import type {
   AdminStationResult,
@@ -127,7 +129,12 @@ function mapStation(row: StationRow): AdminStationResult | null {
     longitude: row.longitude,
     visited: row.visited === true,
     latestVisitAt: row.latest_visit_at,
+    payToPark: false,
   };
+}
+
+function attachPayToPark<T extends AdminStationResult>(stations: T[], stationIds: ReadonlySet<string>): T[] {
+  return stations.map((station) => ({ ...station, payToPark: stationIds.has(station.id) }));
 }
 
 function mapVisit(row: VisitQueryRow): AdminVisitSummary {
@@ -171,6 +178,7 @@ export async function searchAdminStations(query: string): Promise<AdminStationRe
   const normalizedQuery = query.trim().slice(0, 100);
   if (normalizedQuery.length < 2) return [];
 
+  const admin = await requireAdmin();
   const supabase = await createClient();
   const pattern = `%${normalizedQuery}%`;
   const fields = ["name", "address", "city", "state", "postal_code"] as const;
@@ -193,13 +201,14 @@ export async function searchAdminStations(query: string): Promise<AdminStationRe
   }
 
   const lowerQuery = normalizedQuery.toLocaleLowerCase();
-  return [...unique.values()]
+  const payToParkStationIds = await loadAdminPayToParkStationIds(supabase, admin.id);
+  return attachPayToPark([...unique.values()]
     .sort(
       (a, b) =>
         stationRelevance(a, lowerQuery) - stationRelevance(b, lowerQuery) ||
         a.name.localeCompare(b.name),
     )
-    .slice(0, 25);
+    .slice(0, 25), payToParkStationIds);
 }
 
 async function getCandidatesWithinRadius(latitude: number, longitude: number, radiusMiles: number) {
@@ -234,6 +243,7 @@ async function getCandidatesWithinRadius(latitude: number, longitude: number, ra
 }
 
 export async function getNearbyAdminStations(latitude: number, longitude: number) {
+  const admin = await requireAdmin();
   let candidates: AdminStationResult[] = [];
 
   for (const radius of [35, 100, 250]) {
@@ -241,15 +251,18 @@ export async function getNearbyAdminStations(latitude: number, longitude: number
     if (candidates.length >= 15) break;
   }
 
-  return candidates
+  const supabase = await createClient();
+  const payToParkStationIds = await loadAdminPayToParkStationIds(supabase, admin.id);
+  return attachPayToPark(candidates
     .sort((a, b) => (a.distanceMiles ?? Infinity) - (b.distanceMiles ?? Infinity))
-    .slice(0, 15);
+    .slice(0, 15), payToParkStationIds);
 }
 
 export async function getSelectedAdminStation(
   stationId: string,
   coordinates?: { latitude: number; longitude: number },
 ): Promise<SelectedAdminStation | null> {
+  const admin = await requireAdmin();
   const supabase = await createClient();
   const [stationResult, countResult, latestResult] = await Promise.all([
     supabase.from("public_station_status").select(STATION_COLUMNS).eq("id", stationId).maybeSingle(),
@@ -272,9 +285,11 @@ export async function getSelectedAdminStation(
 
   const station = stationResult.data ? mapStation(stationResult.data as StationRow) : null;
   if (!station) return null;
+  const payToParkStationIds = await loadAdminPayToParkStationIds(supabase, admin.id);
 
   return {
     ...station,
+    payToPark: payToParkStationIds.has(station.id),
     previousVisitCount: countResult.count ?? 0,
     latestVisitAt: latestResult.data?.checked_in_at ?? null,
     latestVisitTimezone: latestResult.data?.checked_in_timezone,

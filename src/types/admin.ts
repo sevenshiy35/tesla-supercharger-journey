@@ -11,6 +11,7 @@ export interface AdminStationResult {
   longitude: number;
   visited: boolean;
   latestVisitAt: string | null;
+  payToPark: boolean;
   distanceMiles?: number;
 }
 

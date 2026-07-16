@@ -10,7 +10,7 @@ interface VisitTimeProps {
 
 export function VisitTime({ checkedInAt, timezone, precision, className }: VisitTimeProps) {
   return (
-    <time dateTime={checkedInAt} className={className}>
+    <time dateTime={checkedInAt} className={`font-data ${className ?? ""}`}>
       {formatCheckInDisplayDate(checkedInAt, "en", precision, timezone)}
     </time>
   );

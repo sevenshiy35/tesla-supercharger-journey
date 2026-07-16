@@ -192,3 +192,8 @@ where id = 'TEST_VISIT_UUID';
 - **Empty page state:** run a Dry Run, review counts, then explicitly run the Apply command.
 - **Point remains red:** confirm the Visit is public, references the displayed station UUID, and is
   visible in `public_station_status`.
+
+## Parking information
+
+Parking availability and parking fees are not tracked by the website. Check the Tesla app before
+visiting a station.

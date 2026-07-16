@@ -1,13 +1,15 @@
 "use client";
 
-import { Gauge, LogOut, Map, MapPinCheck, Rows3 } from "lucide-react";
+import { Gauge, LogOut, Map, MapPinCheck, MoreHorizontal, Route, Rows3 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { signOutAction } from "@/app/admin/actions";
 
 const items = [
   { href: "/admin", label: "Dashboard", shortLabel: "Home", icon: Gauge },
   { href: "/admin/check-in", label: "Check In", shortLabel: "Check In", icon: MapPinCheck },
+  { href: "/admin/trips", label: "Trips", shortLabel: "Trips", icon: Route },
   { href: "/admin/visits", label: "Visits", shortLabel: "Visits", icon: Rows3 },
 ] as const;
 
@@ -17,6 +19,7 @@ function isActive(pathname: string, href: string) {
 
 export function AdminNav({ email }: { email: string }) {
   const pathname = usePathname();
+  const [moreOpen, setMoreOpen] = useState(false);
 
   return (
     <>
@@ -64,7 +67,23 @@ export function AdminNav({ email }: { email: string }) {
       </aside>
 
       <div className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 rounded-[24px] border border-white/50 bg-ink/95 p-1.5 shadow-[0_16px_50px_rgba(23,63,60,0.28)] backdrop-blur lg:hidden">
-        <nav aria-label="Admin mobile navigation" className="grid grid-cols-4">
+        {moreOpen ? (
+          <div className="absolute inset-x-0 bottom-[calc(100%+0.6rem)] rounded-[22px] border border-[#d5e6df] bg-white p-2 shadow-2xl">
+            <Link
+              href="/"
+              onClick={() => setMoreOpen(false)}
+              className="flex min-h-12 items-center gap-3 rounded-2xl px-4 text-sm font-semibold text-[#3d625f]"
+            >
+              <Map size={19} aria-hidden /> View Public Site
+            </Link>
+            <form action={signOutAction}>
+              <button type="submit" className="flex min-h-12 w-full items-center gap-3 rounded-2xl px-4 text-sm font-semibold text-[#8d2930]">
+                <LogOut size={19} aria-hidden /> Sign Out
+              </button>
+            </form>
+          </div>
+        ) : null}
+        <nav aria-label="Admin mobile navigation" className="grid grid-cols-5">
           {items.map(({ href, shortLabel, icon: Icon }) => (
             <Link
               key={href}
@@ -77,15 +96,14 @@ export function AdminNav({ email }: { email: string }) {
               {shortLabel}
             </Link>
           ))}
-          <form action={signOutAction}>
-            <button
-              type="submit"
-              className="flex min-h-14 w-full flex-col items-center justify-center gap-0.5 rounded-[18px] text-[11px] font-semibold text-white/75"
-            >
-              <LogOut size={20} aria-hidden />
-              Sign Out
-            </button>
-          </form>
+          <button
+            type="button"
+            onClick={() => setMoreOpen((value) => !value)}
+            aria-expanded={moreOpen}
+            className={`flex min-h-14 w-full flex-col items-center justify-center gap-0.5 rounded-[18px] text-[11px] font-semibold ${moreOpen ? "bg-white text-ink" : "text-white/75"}`}
+          >
+            <MoreHorizontal size={20} aria-hidden /> More
+          </button>
         </nav>
       </div>
     </>

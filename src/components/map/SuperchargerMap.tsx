@@ -7,11 +7,9 @@ import mapboxgl, {
   type ExpressionSpecification,
   type FilterSpecification,
   type GeoJSONSource,
-  type LayerSpecification,
   type LngLatBoundsLike,
   type MapLayerMouseEvent,
   type PaddingOptions,
-  type PaintSpecification,
 } from "mapbox-gl";
 import { BatteryCharging, CircleDot, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -22,6 +20,10 @@ import { useLanguage } from "@/i18n/LanguageProvider";
 import { getLocalizedStateName } from "@/i18n/state-names";
 import { interpolateText } from "@/i18n/translations";
 import { formatDisplayDate } from "@/lib/journey/calculations";
+import {
+  applyJourneyBaseMapStyle,
+  journeyMapColors as templateMapColors,
+} from "@/lib/map/journey-map-style";
 import { stationsToGeoJson } from "@/lib/map/stations-geojson";
 import { selectedStateToGeoJson } from "@/lib/map/selected-state-geojson";
 import { CONTIGUOUS_US_BOUNDS, CONTIGUOUS_US_MAX_BOUNDS } from "@/lib/map/us-map-bounds";
@@ -47,34 +49,6 @@ const selectedStationHaloLayerId = "selected-station-halo";
 const selectedStationMarkerLayerId = "selected-station-marker";
 const unvisitedStationImageId = "station-star-fill-red";
 const visitedStationImageId = "station-star-fill-blue";
-
-const geographicLabelHaloWidthExpression: ExpressionSpecification = [
-  "interpolate",
-  ["linear"],
-  ["zoom"],
-  3,
-  0,
-  4.25,
-  0,
-  5.5,
-  0.55,
-  8,
-  0.8,
-  12,
-  1,
-];
-
-const geographicLabelHaloBlurExpression: ExpressionSpecification = [
-  "interpolate",
-  ["linear"],
-  ["zoom"],
-  3,
-  0.05,
-  6,
-  0.15,
-  12,
-  0.25,
-];
 
 const stationIconSizeExpression: ExpressionSpecification = [
   "interpolate",
@@ -146,20 +120,6 @@ const stationHitAreaExpression: ExpressionSpecification = [
   14,
 ];
 
-const templateMapColors = {
-  land: "#f5e4c0",
-  landMuted: "#f5ecdb",
-  water: "#a3c0b1",
-  road: "#7c4d35",
-  roadMuted: "#797162",
-  highwayStroke: "#99282f",
-  countryBoundary: "#789087",
-  stateBoundary: "#b5aa94",
-  selectedStateBoundary: "#234f47",
-  label: "#a3c0b1",
-  labelHalo: "rgba(255, 253, 242, 0.68)",
-} as const;
-
 const stationStatusColors = {
   visited: "#1F6F9A",
   unvisited: "#C9323B",
@@ -202,116 +162,6 @@ function getMinimumZoom(container: HTMLElement) {
 
 const asMapboxBounds = (bounds: readonly [readonly [number, number], readonly [number, number]]) =>
   bounds as LngLatBoundsLike;
-
-function setPaintIfPresent(
-  map: mapboxgl.Map,
-  layer: LayerSpecification,
-  property: keyof PaintSpecification,
-  value: PaintSpecification[keyof PaintSpecification],
-) {
-  const paint = "paint" in layer ? layer.paint : undefined;
-
-  if (paint && property in paint) {
-    map.setPaintProperty(layer.id, property, value);
-  }
-}
-
-function setVisibility(map: mapboxgl.Map, layerId: string, visibility: "visible" | "none") {
-  map.setLayoutProperty(layerId, "visibility", visibility);
-}
-
-function applyTemplateBaseMapStyle(map: mapboxgl.Map) {
-  for (const layer of map.getStyle().layers ?? []) {
-    const sourceLayer = "source-layer" in layer ? layer["source-layer"] : "";
-    const layerId = layer.id.toLowerCase();
-    const sourceLayerName = sourceLayer?.toLowerCase() ?? "";
-    const layerName = `${layerId} ${sourceLayerName}`;
-
-    if (layer.type === "symbol") {
-      const isGeographicLabel =
-        sourceLayerName === "place_label" ||
-        sourceLayerName === "natural_label" ||
-        layerName.includes("country-label") ||
-        layerName.includes("state-label") ||
-        layerName.includes("settlement") ||
-        layerName.includes("continent-label");
-
-      if (isGeographicLabel) {
-        setPaintIfPresent(map, layer, "text-color", templateMapColors.label);
-        setPaintIfPresent(map, layer, "text-halo-width", geographicLabelHaloWidthExpression);
-        setPaintIfPresent(map, layer, "text-halo-blur", geographicLabelHaloBlurExpression);
-        setPaintIfPresent(map, layer, "text-halo-color", templateMapColors.labelHalo);
-        continue;
-      }
-
-      if (
-        layerName.includes("poi") ||
-        layerName.includes("transit") ||
-        layerName.includes("road-label") ||
-        layerName.includes("road_number") ||
-        layerName.includes("airport")
-      ) {
-        setVisibility(map, layer.id, "none");
-        continue;
-      }
-
-      setPaintIfPresent(map, layer, "text-color", templateMapColors.label);
-      setPaintIfPresent(map, layer, "text-halo-width", 0);
-      setPaintIfPresent(map, layer, "text-halo-color", "rgba(255, 255, 255, 0)");
-      continue;
-    }
-
-    if (layerName.includes("water")) {
-      setPaintIfPresent(map, layer, "fill-color", templateMapColors.water);
-      setPaintIfPresent(map, layer, "line-color", templateMapColors.water);
-      continue;
-    }
-
-    if (layerName.includes("land") || layerName.includes("national-park")) {
-      setPaintIfPresent(map, layer, "fill-color", templateMapColors.land);
-      setPaintIfPresent(map, layer, "background-color", templateMapColors.landMuted);
-      continue;
-    }
-
-    if (layerName.includes("building") || layerName.includes("landuse")) {
-      setPaintIfPresent(map, layer, "fill-color", templateMapColors.landMuted);
-      continue;
-    }
-
-    if (layerName.includes("road")) {
-      const isHighway = layerName.includes("motorway") || layerName.includes("trunk");
-      const isMinorRoad = layerName.includes("street") || layerName.includes("service");
-
-      setPaintIfPresent(
-        map,
-        layer,
-        "line-color",
-        isHighway ? templateMapColors.road : isMinorRoad ? templateMapColors.roadMuted : templateMapColors.road,
-      );
-      setPaintIfPresent(map, layer, "line-opacity", 0.82);
-      setPaintIfPresent(map, layer, "line-emissive-strength", 0);
-      continue;
-    }
-
-    if (layerName.includes("admin") || layerName.includes("boundary")) {
-      const isCountryBoundary = layerName.includes("admin-0") || layerName.includes("country-boundary");
-
-      setPaintIfPresent(
-        map,
-        layer,
-        "line-color",
-        isCountryBoundary ? templateMapColors.countryBoundary : templateMapColors.stateBoundary,
-      );
-      setPaintIfPresent(map, layer, "line-width", isCountryBoundary ? 1.05 : 0.75);
-      setPaintIfPresent(map, layer, "line-opacity", isCountryBoundary ? 0.62 : 0.46);
-      continue;
-    }
-
-    if (layerName.includes("transit") || layerName.includes("airport")) {
-      setVisibility(map, layer.id, "none");
-    }
-  }
-}
 
 function easeMapToBounds(
   map: mapboxgl.Map,
@@ -432,7 +282,7 @@ export function SuperchargerMap({ stations, dataSource, dataError }: Supercharge
     map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
 
     map.on("load", async () => {
-      applyTemplateBaseMapStyle(map);
+      applyJourneyBaseMapStyle(map);
 
       try {
         await addStationMarkerImages(map);
@@ -726,7 +576,7 @@ export function SuperchargerMap({ stations, dataSource, dataError }: Supercharge
   };
 
   return (
-    <section id="map" className="bg-tile px-5 py-20 text-white sm:px-8 lg:px-12">
+    <section id="map" className="bg-tile px-5 py-20 font-ui text-white sm:px-8 lg:px-12">
       <div className="mx-auto max-w-[1440px]">
         <div className="min-w-0">
           <h2 className="text-[40px] font-semibold leading-[1.1] sm:text-[56px]">
@@ -841,16 +691,16 @@ function StationPanel({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <dt className="text-ink-muted">{copy.map.stallCount}</dt>
-            <dd>{station.stallCount ?? copy.map.unknown}</dd>
+            <dd className="font-data">{station.stallCount ?? copy.map.unknown}</dd>
           </div>
           <div>
             <dt className="text-ink-muted">{copy.map.maxPower}</dt>
-            <dd>{station.maxPowerKw ? `${station.maxPowerKw} kW` : copy.map.unknown}</dd>
+            <dd className="font-data">{station.maxPowerKw ? `${station.maxPowerKw} kW` : copy.map.unknown}</dd>
           </div>
         </div>
         <div>
           <dt className="text-ink-muted">{copy.map.lastUpdated}</dt>
-          <dd>{formatDisplayDate(station.lastUpdated, language)}</dd>
+          <dd className="font-data">{formatDisplayDate(station.lastUpdated, language)}</dd>
         </div>
       </dl>
     </aside>

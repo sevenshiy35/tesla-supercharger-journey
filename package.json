@@ -10,7 +10,7 @@
     "supabase:init": "supabase init",
     "supabase:link": "supabase link",
     "supabase:push": "supabase db push",
-    "supabase:types": "supabase gen types typescript --linked --schema public > src/types/database.ts",
+    "supabase:types": "supabase gen types typescript --linked --schema public > src/types/database.generated.ts",
     "sync:stations": "tsx scripts/sync-nlr-stations.ts",
     "sync:stations:dry": "tsx scripts/sync-nlr-stations.ts --dry-run",
     "sync:stations:apply": "tsx scripts/sync-nlr-stations.ts --apply",
@@ -20,7 +20,7 @@
     "import:receipts": "tsx scripts/import-tesla-receipts.ts --dry-run",
     "import:receipts:dry": "tsx scripts/import-tesla-receipts.ts --dry-run",
     "import:receipts:apply": "tsx scripts/import-tesla-receipts.ts --apply",
-    "test": "tsx --test tests/phase-2b.test.ts tests/manual-stations.test.ts tests/receipt-import.test.ts tests/phase-2d.test.ts tests/phase-3a.test.ts"
+    "test": "tsx --test tests/phase-2b.test.ts tests/manual-stations.test.ts tests/receipt-import.test.ts tests/phase-2d.test.ts tests/phase-3a.test.ts tests/phase-3b.test.ts tests/phase-3b2.test.ts tests/phase-3b3.test.ts tests/phase-3b4.test.ts tests/phase-3b41.test.ts tests/database-type-overrides.test.ts tests/trip-planner-convergence.test.ts tests/trip-route-basics.test.ts tests/trip-name-editing.test.ts tests/station-pay-to-park.test.ts"
   },
   "dependencies": {
     "@phosphor-icons/core": "^2.1.1",
@@ -57,6 +57,7 @@
     "supabase": "^2.109.1",
     "tailwindcss": "^4.3.2",
     "tsx": "^4.23.0",
+    "type-fest": "^5.8.0",
     "typescript": "^5.8.3"
   }
 }

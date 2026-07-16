@@ -18,10 +18,16 @@ export function LatestCheckIns({ checkIns, dataSource }: LatestCheckInsProps) {
   const { copy, language } = useLanguage();
 
   return (
-    <section id="latest-check-ins" className="bg-canvas px-5 py-20 text-ink sm:px-8 lg:px-12">
+    <section id="latest-check-ins" className="bg-canvas px-5 py-20 font-ui text-ink sm:px-8 lg:px-12">
       <div className="mx-auto max-w-[1180px]">
         <div className="max-w-[760px]">
-          <h2 className="text-[40px] font-semibold leading-[1.1] sm:text-[56px]">
+          <h2
+            className={`text-balance text-[40px] font-normal sm:text-[56px] ${
+              language === "zh"
+                ? "font-story-cn leading-[1.15] tracking-[0.02em]"
+                : "font-display-en leading-[1.1] tracking-[-0.025em]"
+            }`}
+          >
             {copy.checkIns.title}
           </h2>
           <p className="mt-4 text-[21px] leading-[1.4] text-ink-muted">
@@ -48,7 +54,7 @@ export function LatestCheckIns({ checkIns, dataSource }: LatestCheckInsProps) {
                   />
                 </div>
                 <div className="mt-5">
-                  <p className="text-[14px] text-ink-muted">
+                  <p className="font-data text-[14px] text-ink-muted">
                     {checkIn.city}, {getLocalizedStateName(checkIn.state, language)} ·{" "}
                     {formatCheckInDisplayDate(
                       checkIn.checkedInAt,
@@ -63,7 +69,7 @@ export function LatestCheckIns({ checkIns, dataSource }: LatestCheckInsProps) {
                       {language === "zh" ? sampleCheckInNotesZh[checkIn.id] ?? checkIn.note : checkIn.note}
                     </p>
                   ) : null}
-                  <p className="mt-3 text-[14px] text-ink-muted">
+                  <p className="mt-3 font-data text-[14px] text-ink-muted">
                     {checkIn.energyKwh?.toFixed(1) ?? "--"} kWh · $
                     {checkIn.costUsd?.toFixed(2) ?? "--"}
                   </p>

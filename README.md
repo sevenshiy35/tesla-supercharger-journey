@@ -110,6 +110,12 @@ The operation is idempotent on `external_id`, preserves station UUIDs and visits
 stations missing from the current source. See `SUPABASE-STATION-SYNC.md` for counts, SQL checks,
 red-to-blue verification, and troubleshooting.
 
+Administrators can add a private **Pay to park** marker after reviewing a Supercharger in their own
+Tesla app. This is a personal preference, not Tesla-verified, NLR-derived, or public Station data.
+It persists across Trips, appears as a yellow `$` on private Trip maps, and is removed only when the
+administrator explicitly unmarks it. **Select all visible unvisited** skips marked Stations, while
+individual selection and route optimization continue to retain any Station the administrator chose.
+
 Two receipt-confirmed New Jersey stations that are not yet in NLR live in a script-only manual
 definition. Preview them without writing:
 
@@ -165,6 +171,9 @@ The administrator surface is available at:
 /admin/check-in
 /admin/visits
 /admin/visits/[id]
+/admin/trips
+/admin/trips/new
+/admin/trips/[id]
 ```
 
 Create the Supabase Auth email/password user manually and register its UUID in `app_admins` as
@@ -223,6 +232,11 @@ Configuration, request a fresh email; an already-issued link keeps its old redir
 
 The map is working when the neutral dark United States base map, navigation controls, station clusters, and individual station points are visible. Without the token, the page remains usable and displays a configuration notice.
 
+The private Trip Planner additionally needs a dedicated server token as
+`MAPBOX_SERVER_ACCESS_TOKEN`. It performs Permanent Geocoding, Directions, and Matrix only on the server;
+never prefix this token with `NEXT_PUBLIC_`. Keep `MAPBOX_PERSIST_ROUTE_GEOMETRY=false` unless your
+account-specific Mapbox contract has been reviewed to permit long-term Directions Geometry storage.
+
 ## NLR station data
 
 Request an API key from the [NLR Developer Network](https://developer.nlr.gov/signup/). Keep this key server-side as `NLR_API_KEY`; never prefix it with `NEXT_PUBLIC_`.
@@ -271,9 +285,9 @@ Phase 3A is implemented in code and documented in [PHASE-3A.md](./PHASE-3A.md). 
 Supabase Storage Bucket contract, mobile photo processing/upload on `/admin/visits/[id]`, photo
 management, public `/visits/[id]` pages, and real public Covers in Latest Check-ins.
 
-Before using photos, manually apply the pending Migration after review, regenerate Supabase types,
-and create a **Private** Storage Bucket named `visit-photos`. The Migration intentionally does not
-create the Bucket. Allow JPEG, PNG, and WebP stored objects and use Supabase's default platform
+The linked remote Migration history includes the Phase 3A Migration as of July 15, 2026. Before
+using photos, verify the generated Supabase types and create (or verify) a **Private** Storage Bucket
+named `visit-photos`. The Migration intentionally does not create the Bucket. Allow JPEG, PNG, and WebP stored objects and use Supabase's default platform
 file-size configuration or a suitably high value. The project sets no custom photo-count, original
 file-size, or output file-size limit; actual uploads remain subject to Supabase Storage, the browser,
 device memory, and network conditions.
@@ -292,7 +306,7 @@ with `NEXT_PUBLIC_`; the key is isolated to a `server-only` module and is not in
 bundles. Admin upload, Metadata mutations, and protected previews continue to use the authenticated
 Cookie Session, `app_admins`, RLS, Storage Policies, and secured RPCs.
 
-Run the pending plan without applying it:
+Review any later pending plan without applying it:
 
 ```bash
 npx supabase db push --dry-run
@@ -300,6 +314,117 @@ npx supabase db push --dry-run
 
 See PHASE-3A.md for Bucket settings, EXIF/time rules, deletion compensation, security verification,
 manual Supabase operations, and the first iPhone acceptance test.
+
+## Phase 3B Trip Planner: simplified route basics and manual Station selection
+
+Phases 3B.1–3B.4.1 and the nullable Stop-limit Migration are applied remotely. Full design and acceptance
+instructions are in [PHASE-3B.md](./PHASE-3B.md). New Drafts choose **Trip Type, Origin, and
+Destination in one Route basics step** before creation. The detail editor uses the same compact Route
+basics card. For round trips the administrator chooses the complete Station set on the map; the server
+uses Matrix costs to assign legs and optimize order, then verifies the final route with segmented
+Directions. One-way retains Add Stop, reorder, and exact Recalculate Route. The previous Planning
+Limits form and automatic candidate-generation product path are no longer exposed.
+
+The current Draft stepper is **Route basics → Select stations → Optimize route → Review**. Phase
+3B.5 confirmation and homepage work remains paused.
+
+The Admin runtime uses its Cookie Session and never service role for Trip operations. Authenticated
+clients receive base-table `SELECT` only; Draft mutations are RPC-only. An administrator can see and
+mutate only their own Plans, while Stops and Segments inherit that boundary through the parent Plan.
+No public Trip View or anonymous Policy exists.
+
+Geocoding v6 requests use `permanent=true`, US-only results, and an Admin-only no-store proxy.
+Directions runs in Server Actions; the browser never submits Geometry or route metrics. A monotonic
+input revision and transaction RPC reject stale provider results. A real Trip Type, Origin, or
+Destination change invalidates old route data exactly once; an identical save changes nothing.
+Round trips request both directions independently rather than reversing the outbound Geometry.
+
+Matrix is server-only, uses `mapbox/driving` with distance/duration annotations, preserves `null` as
+unreachable, and supplies no Geometry. The Mapbox Optimization API, traffic, EV routing, and Search
+Box remain unused. A Planned Stop remains planning intent and never creates a Visit or changes
+`public_station_status` or the public home map. Public and Private Visits by the current administrator
+both exclude a Station; other users' Visits do not affect candidates.
+
+The Foundation, endpoint, and nullable Stop-limit Migrations (`20260715120000`, `20260715180000`,
+and `20260715190000`) are applied remotely. The compatibility Migration is:
+
+```text
+supabase/migrations/20260715190000_nullable_trip_stop_limit.sql
+```
+
+It preserves existing numeric `max_stops` values and makes the column nullable. The database still
+retains `corridor_miles`, `max_extra_minutes`, `max_extra_miles`, `max_stops`, and
+`stop_duration_minutes` for old Trips and RPC compatibility, but ordinary UI neither displays nor
+edits them. New Route Drafts use internal compatibility values of 50 miles, 120 minutes, no distance
+cap, no Stop cap, and 10 minutes per Station. They are not current user planning limits. The applied
+Phase 3B.3 Migration is:
+
+```text
+supabase/migrations/20260715200000_trip_suggestion_algorithm.sql
+```
+
+It introduced Base/planned Segment kinds, Stop corridor/progress/rank fields, compact algorithm audit
+fields, and hardened atomic Save/Clear Suggestions RPCs. Those database fields and RPCs remain for
+legacy `source=algorithm` Trip compatibility, but Automatic Suggestions has been removed from the
+current product and application actions. Geometry persistence still defaults off
+because the reviewed official public Directions terms did not clearly establish this account's
+indefinite storage rights. Endpoints, Stops, and Metrics remain saved; sanitized Base/planned lines
+are rebuilt after refresh through an administrator-only `private, no-store` preview.
+
+Phase 3B.4 added the applied manual-editing Migration:
+
+```text
+supabase/migrations/20260715210000_trip_manual_editing.sql
+```
+
+The Trip detail editor can search and manually add any usable Supercharger (including visited
+Stations), remove Stops, drag or button-reorder them, and move Round Trip legs. Recalculate Route
+preserves the exact human set/order/leg and reports objective route metrics.
+Legacy algorithm Stops still load, display, delete, reorder, and recalculate, but the UI no longer
+offers Generate, Regenerate, Re-optimize, Clear Suggestions, or Stop lock/unlock actions. Every
+mutation uses the monotonic revision, stale planned routes are labelled/faded, and no edit creates a
+Visit or changes public data.
+
+Round trips now use **Select Stations on Map** as the primary mode. The user selects the complete
+Station set; the server reloads those rows, builds a chunked asymmetric driving Matrix, assigns
+outbound/return legs around the fixed Destination, and optimizes visit order using deterministic
+cheapest-insertion, regret-2, multi-seed, relocate, swap, and directed 2-opt heuristics. Segmented
+Directions then supplies the authoritative route and metrics. Every selected Station is retained
+once, including visited or out-of-display-corridor selections. Old database budget values neither
+warn nor block this mode. Results show Base, Optimized, and Additional driving time/distance instead
+of budget status. Selected rows are saved as manual, locked, planned Stops. Users choose every
+Station; the software only assigns legs, optimizes order, and calculates the route. One-way Base
+Route, Add Stop, manual ordering, and Recalculate Route remain available.
+
+The **Display corridor** control remains 10/25/50/75/100 miles and defaults to 50. It is client-side
+map filtering only: it changes which nearby candidates are displayed, never writes
+`trip_plans.corridor_miles`, removes an existing selection/Stop, or limits optimization.
+
+The applied Phase 3B.4.1 Migration is:
+
+```text
+supabase/migrations/20260715220000_trip_selected_out_and_back.sql
+```
+
+The current internal guard is 48 selected Stations per run. It is derived from the reviewed Matrix
+coordinate, element, request-rate, and runtime constraints, remains application-only, and is not a
+user Stop limit or database setting. The browser submits only Trip ID, expected revision, and Station
+IDs. The new RPC revalidates the exact set and atomically replaces Stops and planned Segments while
+preserving Base Segments. Phase 3B.5 confirmation/homepage work remains paused.
+
+The simplified Route basics RPCs are defined in the new pending Migration:
+
+```text
+supabase/migrations/20260715235500_trip_route_basics.sql
+```
+
+`admin_create_trip_plan_route_draft` creates a Draft with internal compatibility defaults and both
+endpoints atomically. `admin_update_trip_plan_route_basics` validates Auth/Admin/ownership/Draft,
+expected revision, Trip Type, complete endpoints, authoritative Station metadata, and null-safe
+changes. A real change clears only that Draft's Stops, Segments, route metrics, and audit state and
+advances revision once. The older create/settings/endpoints/swap RPCs and database columns remain for
+history and compatibility, but ordinary UI no longer calls the Settings RPC. This Migration has not
+been applied by the application workflow.
 
 ## Verification
 

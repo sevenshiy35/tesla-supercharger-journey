@@ -1,5 +1,5 @@
 import type { Route } from "next";
-import { ArrowRight, Map, MapPinCheck } from "lucide-react";
+import { ArrowRight, Map, MapPinCheck, Route as RouteIcon } from "lucide-react";
 import Link from "next/link";
 import { PublicBadge } from "@/components/admin/PublicBadge";
 import { VisitTime } from "@/components/admin/VisitTime";
@@ -44,7 +44,7 @@ export default async function AdminDashboardPage() {
               index === metrics.length - 1 ? "col-span-2 lg:col-span-1" : ""
             }`}
           >
-            <p className="text-[32px] font-semibold leading-none tracking-[-0.03em]">{value}</p>
+            <p className="font-data text-[32px] font-semibold leading-none tracking-[-0.03em]">{value}</p>
             <p className="mt-2 text-sm text-[#67817e]">{label}</p>
           </article>
         ))}
@@ -71,7 +71,7 @@ export default async function AdminDashboardPage() {
               >
                 <div className="min-w-0">
                   <p className="truncate font-semibold">{visit.stationName}</p>
-                  <p className="mt-1 text-sm text-[#67817e]">
+                  <p className="mt-1 font-data text-sm text-[#67817e]">
                     {visit.city}, {visit.state} ·{" "}
                     <VisitTime
                       checkedInAt={visit.checkedInAt}
@@ -80,7 +80,7 @@ export default async function AdminDashboardPage() {
                     />
                   </p>
                   {visit.energyKwh !== null || visit.costUsd !== null ? (
-                    <p className="mt-1 text-xs text-[#67817e]">
+                    <p className="mt-1 font-data text-xs text-[#67817e]">
                       {visit.energyKwh?.toFixed(1) ?? "—"} kWh · ${visit.costUsd?.toFixed(2) ?? "—"}
                     </p>
                   ) : null}
@@ -100,7 +100,13 @@ export default async function AdminDashboardPage() {
         )}
       </section>
 
-      <section className="mt-5 grid gap-3 sm:grid-cols-2">
+      <section className="mt-5 grid gap-3 sm:grid-cols-3">
+        <Link
+          href="/admin/trips"
+          className="flex min-h-16 items-center justify-between rounded-[22px] border border-[#d5e6df] bg-white px-5 font-semibold shadow-sm"
+        >
+          Plan a Trip <RouteIcon size={19} aria-hidden />
+        </Link>
         <Link
           href="/admin/visits"
           className="flex min-h-16 items-center justify-between rounded-[22px] border border-[#d5e6df] bg-white px-5 font-semibold shadow-sm"
@@ -114,6 +120,7 @@ export default async function AdminDashboardPage() {
           View Public Map <Map size={19} aria-hidden />
         </Link>
       </section>
+
     </main>
   );
 }

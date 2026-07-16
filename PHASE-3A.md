@@ -1,5 +1,10 @@
 # Phase 3A — Visit photos and public Visit details
 
+> Current status (July 15, 2026): the linked remote Migration history now includes
+> `20260714190000_visit_photo_storage.sql`. The sections below preserve the original Phase 3A
+> implementation handoff; the private `visit-photos` Bucket still requires separate operator
+> verification because the Migration intentionally does not create it.
+
 Phase 3A adds a private Supabase Storage photo system, mobile upload and management on
 `/admin/visits/[id]`, public Visit pages at `/visits/[id]`, and real public cover photos in Latest
 Check-ins. The code is complete locally, but the Migration and Bucket are intentionally not applied

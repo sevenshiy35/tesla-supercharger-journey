@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "SF Pro Display", "SF Pro Text", "PingFang SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+  --font-sans: var(--font-ui);
   --color-canvas: #fffdf2;
   --color-surface: #ffffff;
   --color-surface-muted: #edf4f0;
@@ -26,23 +26,76 @@
 }
 
 :root {
+  --font-ui:
+    "SF Pro Display",
+    "SF Pro Text",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Inter",
+    "PingFang SC",
+    "Hiragino Sans GB",
+    "Microsoft YaHei",
+    "Noto Sans SC",
+    "Segoe UI",
+    Arial,
+    sans-serif;
+  --font-story-cn:
+    var(--font-huiwen-mincho, "Huiwen Mincho"),
+    "Huiwen Mincho",
+    "汇文明朝体",
+    "Noto Serif SC",
+    "Source Han Serif SC",
+    "Songti SC",
+    serif;
+  --font-data:
+    "SF Pro Display",
+    "SF Pro Text",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Inter",
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  --font-display-en:
+    Georgia,
+    "Times New Roman",
+    "SF Pro Display",
+    "Inter",
+    serif;
   --color-region-west: #b97b5d;
   --color-region-midwest: #b99a52;
   --color-region-south: #6f8c69;
   --color-region-northeast: #3e837d;
   color: var(--color-ink);
   background: var(--color-canvas);
-  font-family:
-    "SF Pro Display",
-    "SF Pro Text",
-    "PingFang SC",
-    "Microsoft YaHei",
-    -apple-system,
-    BlinkMacSystemFont,
-    "Inter",
-    "Segoe UI",
-    sans-serif;
+  font-family: var(--font-ui);
   scroll-behavior: smooth;
+}
+
+@utility font-ui {
+  font-family: var(--font-ui);
+}
+
+@utility font-story-cn {
+  font-family: var(--font-story-cn);
+}
+
+@utility font-story {
+  font-family: var(--font-story-cn);
+}
+
+@utility font-data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "ss01" 1;
+}
+
+@utility font-display-en {
+  font-family: var(--font-display-en);
+}
+
+@utility font-display {
+  font-family: var(--font-display-en);
 }
 
 * {
@@ -57,6 +110,7 @@ body {
 }
 
 body {
+  font-family: var(--font-ui);
   font-size: 17px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -68,6 +122,17 @@ select,
 input,
 textarea {
   font: inherit;
+  font-family: var(--font-ui);
+}
+
+html:lang(zh) body {
+  line-height: 1.65;
+}
+
+.mapboxgl-map,
+.mapboxgl-popup,
+.mapboxgl-ctrl {
+  font-family: var(--font-ui) !important;
 }
 
 a,
@@ -89,6 +154,49 @@ a[role="button"]:active {
 
 .mapboxgl-ctrl-attrib {
   font-size: 11px;
+}
+
+.journey-trip-map .mapboxgl-popup-content {
+  max-width: 280px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-canvas);
+  box-shadow: 0 16px 42px rgba(12, 48, 45, 0.2);
+  color: var(--color-ink);
+  line-height: 1.45;
+  padding: 12px 14px;
+}
+
+.journey-trip-map .mapboxgl-popup-content strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.journey-trip-map .mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip,
+.journey-trip-map .mapboxgl-popup-anchor-bottom-left .mapboxgl-popup-tip,
+.journey-trip-map .mapboxgl-popup-anchor-bottom-right .mapboxgl-popup-tip {
+  border-top-color: var(--color-canvas);
+}
+
+.journey-trip-map .mapboxgl-popup-anchor-top .mapboxgl-popup-tip,
+.journey-trip-map .mapboxgl-popup-anchor-top-left .mapboxgl-popup-tip,
+.journey-trip-map .mapboxgl-popup-anchor-top-right .mapboxgl-popup-tip {
+  border-bottom-color: var(--color-canvas);
+}
+
+.journey-trip-map .mapboxgl-popup-anchor-left .mapboxgl-popup-tip {
+  border-right-color: var(--color-canvas);
+}
+
+.journey-trip-map .mapboxgl-popup-anchor-right .mapboxgl-popup-tip {
+  border-left-color: var(--color-canvas);
+}
+
+.journey-trip-map .mapboxgl-popup-close-button {
+  color: var(--color-ink-muted);
+  font-size: 18px;
+  line-height: 1;
+  padding: 5px 7px;
 }
 
 @media (prefers-reduced-motion: reduce) {

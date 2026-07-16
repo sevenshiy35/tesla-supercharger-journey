@@ -206,3 +206,279 @@ public. Keep all test user UUIDs and credentials outside the repository.
   forgot-password screen; Auth provider errors remain generic.
 - [ ] **Session cleanup:** after a successful password update, confirm existing Sessions are signed
   out globally and the new password is required at `/admin/login`.
+
+## Phase 3B private Trip Plans
+
+- [ ] **Pending Migration only:** confirm the applied linked history through `20260715234500`, then
+  review only `20260715235500_trip_route_basics.sql` with `npx supabase db push --dry-run`. Do not
+  Apply it from this workflow.
+- [ ] **No anonymous access:** as `anon`, confirm SELECT/INSERT/UPDATE/DELETE fail for `trip_plans`,
+  `trip_plan_stops`, and `trip_plan_segments`. There must be no anonymous Trip View or Policy.
+- [ ] **Non-admin denial:** as an authenticated user absent from `app_admins`, confirm all three
+  tables return no rows and every Admin Trip RPC rejects the request.
+- [ ] **Plan ownership:** create one Draft as each of two allowlisted administrators. Confirm each
+  administrator can list/open/update/delete only their own Draft and cannot infer whether the other
+  ID exists from the safe UI error.
+- [ ] **Child ownership:** confirm Stop and Segment SELECT plus every defensive RLS write Policy
+  resolves ownership through `trip_plans.user_id = auth.uid()` rather than trusting a child field.
+- [ ] **RPC-only mutations:** confirm authenticated has SELECT but no direct INSERT/UPDATE/DELETE
+  grant on the three Trip tables. Browser attempts to update `status`, `user_id`, route metrics,
+  visibility flags, or Geometry must fail.
+- [ ] **Server Action authorization:** confirm Route Draft create, Route basics update, and Draft
+  delete Server Actions each call `requireAdmin()` before validating and invoking the authenticated
+  RPC.
+- [ ] **Fixed RPC environment:** confirm every mutation RPC is `security definer`, uses
+  `set search_path = public`, require non-null `auth.uid()`, check `app_admins`, revoke execution from
+  `public` and `anon`, and grant only `authenticated`.
+- [ ] **Create identity and route intent:** confirm Route Draft create accepts Trip Type plus complete
+  Origin/Destination only—never user ID, name, status, Metrics, Geometry, Stops, or Segments. The row
+  must use `auth.uid()`, stay Draft, and create zero Stops/Segments/Visits.
+- [ ] **Legacy Settings boundary:** confirm the retained Settings RPC changes only its historical
+  columns and rejects a non-Draft or foreign-user Plan. Ordinary UI must not call it or expose route
+  corridor, extra time/distance, Stop cap, or Station duration controls.
+- [ ] **No hidden business cap:** confirm Matrix shortlist, Directions-coordinate, batching, and
+  iteration guards remain application-only technical controls. They must not be stored in Trip rows
+  or presented as a Maximum Stops setting, and a guard hit must be reported as a partial result.
+- [ ] **Draft deletion boundary:** confirm only a current-user Draft can be deleted. Its Stops and
+  Segments cascade, Stations remain, and a referenced Visit remains (with only the Stop link subject
+  to `ON DELETE SET NULL` when the Visit itself is deleted).
+- [ ] **Trip/Visit isolation:** create, edit, and delete a Draft; confirm `station_visits`,
+  `charging_sessions`, `visit_photos`, and `public_station_status` do not change and the public map
+  keeps the same red/blue status.
+- [ ] **No token or raw response storage:** inspect Trip rows and action payloads for the absence of
+  Mapbox tokens, Secrets, phone GPS check-in coordinates, complete provider responses, and
+  unfiltered station candidate arrays.
+- [ ] **List minimization:** confirm `/admin/trips` reads no Segment Geometry or user UUID and limits
+  the newest result set to 100 Plans. SQL/PostgREST errors must not reach the browser.
+- [ ] **No public Draft leak:** even if `is_public` is manually true in a test environment, signed-out
+  users must receive no Plan, address, settings, Stop, or Geometry data in Phase 3B.1.
+- [ ] **No disallowed Mapbox calls:** confirm the Trip Planner calls only Geocoding v6, Directions
+  v5, and Matrix v1 with `mapbox/driving`; there must be no Search Box, Optimization, live-traffic,
+  EV, fallback-speed, or navigation-instruction API.
+- [ ] **No secret in client:** after `npm run build`, scan `.next/static` for
+  `SUPABASE_SECRET_KEY` and `service_role`; Trip Client Components must contain neither.
+
+### Simplified Route basics boundary
+
+- [ ] **Atomic input:** `admin_update_trip_plan_route_basics` must be `security definer`, fix
+  `search_path`, verify non-null Auth, `app_admins`, owner Draft, expected revision, legal Trip Type,
+  complete valid endpoints, and different Origin/Destination before returning a safe DTO.
+- [ ] **Station authority:** forge Station labels, addresses, provider IDs, or coordinates. The RPC
+  must re-read authoritative Station metadata and reject mismatched coordinates.
+- [ ] **Null-safe no-op:** submit the exact saved Trip Type and endpoints. Confirm `changed=false`,
+  revision and updated route data remain unchanged, and no Stop/Segment deletion occurs.
+- [ ] **Single invalidation:** change Trip Type, Origin, Destination, or multiple inputs together.
+  Confirm revision advances exactly once; all Base/planned Segments, Stops, route Metrics/audit state,
+  and stale flag clear; Station/Visit/photo/Receipt/Charging data remains unchanged.
+- [ ] **Intent-only browser payload:** Route basics Server Action may submit only Trip ID, expected
+  revision, Trip Type, and endpoint fields. It must not accept ownership, status, Metrics, Geometry,
+  Stops, persistence, or stale-state input.
+- [ ] **Local Display corridor:** confirm 10/25/50/75/100 miles defaults to 50 and changes candidate
+  display only. It must not call Settings RPC, write `trip_plans.corridor_miles`, remove selected or
+  current Stops, or cause optimization to omit selected Stations.
+- [ ] **No budget product state:** inspect Route summary, map selection, and manual editor for Base,
+  Optimized, and Additional drive time/distance. They must not render Budget remaining, Within/Over
+  budget, editable Station duration, or Planning Limits.
+
+### Phase 3B.2 endpoints and base route
+
+- [ ] **Token isolation:** configure `MAPBOX_SERVER_ACCESS_TOKEN` only in the protected server
+  environment. Confirm it never appears in HTML, RSC/client payloads, `.next/static`, browser URLs,
+  logs, error text, or `NEXT_PUBLIC_*`. A separate `NEXT_PUBLIC_MAPBOX_TOKEN` is used only for GL JS.
+- [ ] **Permanent Geocoding eligibility:** verify the Mapbox account has the required valid card or
+  enterprise contract. Confirm requests set `permanent=true`, `country=US`, and use the protected
+  Admin proxy with `Cache-Control: private, no-store`.
+- [ ] **Geocoding minimization:** confirm the client receives only provider ID, label, full address,
+  coordinates, feature type, and attribution. No access token, request URL, context tree, or raw
+  response may be returned or stored.
+- [ ] **Geocoding authorization:** signed-out and authenticated non-admin requests to
+  `/api/admin/trips/geocode` must fail before any Mapbox request. Validate minimum/maximum query
+  lengths and semicolon rejection.
+- [ ] **Current-location privacy:** confirm no location prompt occurs on load. Deny and timeout paths
+  must preserve address/Station search. GPS must not enter URL, logs, local/session storage, public
+  Views, or public map; it persists only after Create Draft or Save Route Basics to the private owner
+  Draft.
+- [ ] **Station integrity:** attempt to submit a valid `stations.id` with altered coordinates. The
+  endpoint RPC must reject it, re-read the Station label/address/coordinates, and never add it to
+  `trip_plan_stops`.
+- [ ] **Endpoint shape:** Mapbox requires provider ID and permanent address; current location forbids
+  Station/provider/address metadata; Station requires stable ID and forbids provider ID. Labels and
+  provider IDs are trimmed and bounded.
+- [ ] **Revision race:** start A→B calculation, update to A→C before completion, and confirm
+  `admin_save_trip_base_route` rejects the old expected revision without changing route metrics or
+  Segments.
+- [ ] **Transactional invalidation:** a real Route basics change or Clear Route must increment
+  revision, delete only this Plan's Segments/Stops, and clear all route metrics. An identical Route
+  basics update must do none of those operations. Retained legacy endpoint/settings/swap RPCs remain
+  compatibility-only.
+- [ ] **Directions boundary:** browser payloads must contain only `tripPlanId`; Geometry, distance,
+  duration, provider, algorithm, and expected revision are read/created server-side after
+  `requireAdmin()`.
+- [ ] **Directions failure:** verify 401, 403, 429, retryable 5xx, timeout, NoRoute/NoSegment, invalid
+  Geometry, and stale-save errors become safe messages with no provider body or complete URL.
+- [ ] **Round-trip atomicity:** fail the return fixture after outbound succeeds. Confirm no route RPC
+  runs and no single Segment or partial metrics are saved.
+- [ ] **Geometry validator:** reject Point/MultiLineString, fewer than two coordinates, nonfinite or
+  out-of-range values, extra Geometry keys, over 100,000 coordinates, and payloads over 8 MiB.
+- [ ] **Persistence safe default:** keep `MAPBOX_PERSIST_ROUTE_GEOMETRY=false` until account-specific
+  Directions retention rights are confirmed. With false, endpoints/Stops/Metrics save but planned
+  Segment rows do not; refresh must rebuild a sanitized line only through the authenticated,
+  owner-scoped, `private, no-store` preview without changing Metrics or revision.
+- [ ] **RPC hardening:** verify all four new RPCs and upgraded settings RPC are `security definer`,
+  fix `search_path`, check Auth/Admin/owner/Draft, and expose execution to authenticated only.
+- [ ] **Trip isolation:** confirm endpoint/route operations never insert `station_visits` or
+  `trip_plan_stops`, never change Station/Visit/photo/charging/public status data, and never revalidate
+  or modify the public homepage map.
+- [ ] **Client bundle scan:** after build, scan `.next/static` for `MAPBOX_SERVER_ACCESS_TOKEN`,
+  `SUPABASE_SECRET_KEY`, `service_role`, and any actual configured token value. All must be absent.
+
+### Phase 3B.3 legacy Suggestions schema and planned-route compatibility
+
+- [ ] **No current product entry:** browser and Server Actions expose no Generate Suggestions,
+  Regenerate, Re-optimize Unlocked, Clear Suggestions, automatic loading, or technical-limit UI.
+  Existing `source=algorithm` Stops must still load, display, remove, reorder, and recalculate.
+
+- [ ] **Current-user Visit definition:** create Public, Private, exact, date-only, Receipt-imported,
+  and phone Check-in Visits for test Stations. Every one must exclude that Station from the current
+  administrator's candidates. Another user's Visit must not exclude it. Candidate runtime must use
+  the Cookie Session and explicit `station_visits.user_id = auth.uid()`, never service role.
+- [ ] **Candidate minimization:** verify the server queries expanded Bounding Boxes in pages, performs
+  spherical Corridor filtering server-side, and never returns the nationwide Station pool, another
+  user's Visit data, private endpoint coordinates, or raw candidate records to the browser.
+- [ ] **Eligibility:** closed/non-operational, non-US, invalid-coordinate, Origin, Destination, and
+  duplicate Stations must be excluded. Missing postal code, stall count, and power must not exclude
+  an otherwise eligible Station. Accept only operational values confirmed in current data.
+- [ ] **Matrix isolation:** Matrix must be imported only by `server-only` modules, use
+  `mapbox/driving`, request `distance,duration`, omit traffic and `fallback_speed`, keep `null`
+  unreachable, validate dimensions, and reuse bounded retry/abort handling. Token, full URL, raw
+  Matrix, and endpoint coordinates must not be logged or returned.
+- [ ] **Technical guards:** verify Matrix coordinate/elements/request limits, Directions coordinate
+  limits, candidate query pages, and algorithm/local/correction iterations exist only as application
+  constants. A guard hit may save a valid partial result with `technical_limit_reached`, but must
+  never write a user Stop cap or claim mathematical completeness.
+- [ ] **Determinism and budgets:** repeat one fixture with unchanged Station/Visit/Mapbox inputs.
+  Selected set, order, leg, and ranks must match. Extra-time/distance budgets use Directions driving
+  only; Station dwell time is separate. A legacy numeric `max_stops` remains compatible, while null
+  imposes no user count limit.
+- [ ] **Round-trip midpoint:** verify distinct outbound and return Base Geometry, one fixed
+  Destination midpoint, no reversed outbound Geometry, no duplicate Station across legs, and no
+  local-optimization move across Destination. Fail any return/Segment request and confirm no partial
+  save occurs.
+- [ ] **Authoritative correction:** force Matrix to underestimate a detour. Final Directions must
+  detect the overage, remove a deterministic costly Stop within the bounded correction loop, and
+  save only a compliant route. An uncorrectable route must leave old Suggestions untouched; zero
+  Stops must still save a successful Base-equivalent result.
+- [ ] **Save RPC hardening:** attempt stale revision, foreign/non-Draft Plan, duplicate/nonexistent/
+  endpoint/visited Station, discontinuous sequence, invalid leg/source/lock/status/rank/progress,
+  forged Metrics, over-budget totals, wrong algorithm version, and invalid Geometry. Every case must
+  roll back without partial Stops, Metrics, or Segments.
+- [ ] **Clear isolation:** Clear Suggestions must delete only algorithm/unlocked Stops and planned
+  Segments, restore planned Metrics from Base, clear audit state, preserve Base Segments/endpoints/
+  revision, and leave Visits, Stations, photos, charging data, and public status untouched. Repeating
+  Clear with no Stops must be safe.
+- [ ] **Preview isolation:** signed-out, non-admin, foreign-owner, invalid-ID, and invalid-kind preview
+  requests must fail before Directions. Valid responses must be `private, no-store`, contain only
+  cleaned Segments, and never mutate Stops, Metrics, revision, or audit fields.
+- [ ] **Legacy RPC isolation:** no browser route invokes Generate/Regenerate/Clear. Retained database
+  compatibility RPCs remain authenticated/owner-scoped and accept no client candidate pool, Matrix,
+  Metrics, Geometry, technical state, ownership, Visit status, or persistence policy.
+- [ ] **No public effect:** after Preview and every current manual planning action, verify no new Visit
+  exists, `public_station_status` and the public homepage are unchanged, and no Draft/Stop/route data
+  is available anonymously.
+
+### Phase 3B.4 manual Stops and Anchors
+
+- [ ] **New Migration only:** review `20260715210000_trip_manual_editing.sql` after 3B.3. Do not edit
+  or reapply older Migrations; confirm `planned_route_stale` defaults false and internal API limits
+  are absent from the schema.
+- [ ] **RPC boundary:** for every 3B.4 RPC verify `security definer`, fixed `search_path`, authenticated
+  execute only, `auth.uid()` administrator allowlist, owner Draft lock, and expected revision.
+- [ ] **Manual identity:** forge source, lock, status, Visit, detour, or selection-rank input. The add
+  RPC must still create `manual + locked + planned` with algorithm fields null. Endpoint, duplicate,
+  invalid-coordinate, and clearly closed Stations must fail atomically.
+- [ ] **Visit privacy:** manual search and Stop reload may expose only a boolean for the current user's
+  Visit. Another user's Visit must never appear. No Visit ID, timestamp, notes, GPS, or visibility is
+  returned to the Stop editor.
+- [ ] **Explicit-edit invalidation:** add/remove/reorder must increment revision, retain Base Segments
+  and all route Metrics, delete only planned Segments, and mark stale. Lock/unlock must increment
+  revision while retaining Stops, sequence, leg, Metrics, Segments, and the existing stale value.
+- [ ] **Exact recalculate:** reorder a human route beyond retained legacy budget values. Recalculate
+  must preserve the exact Stop IDs/order/legs, save authoritative Directions metrics, show objective
+  Additional time/distance, clear stale, and never auto-remove a manual Stop or show budget status.
+- [ ] **Retired Anchor actions:** confirm no application entry exposes Anchor re-optimization,
+  lock/unlock, or scratch regeneration. Retained legacy RPCs must remain inaccessible to anonymous
+  users and must not be called by the current browser flow.
+- [ ] **Complete reorder payload:** omit, duplicate, or inject a foreign Stop ID; repeat a sequence;
+  send return on one-way; or interleave outbound after return. The transaction must roll back. A
+  valid explicit reorder may move manual/locked Stops and must keep manual rows locked.
+- [ ] **Concurrency:** overlap current add, remove, reorder, leg-move, optimize-selected, and
+  recalculate operations.
+  The loser must show “The trip changed while this operation was running. Refresh and try again.”
+  and must not partially replace Stops, Metrics, or Geometry.
+- [ ] **Client and public isolation:** scan client bundles for server Mapbox/Supabase secrets and
+  confirm all 3B.4 operations leave Stations, Visits, public status, public homepage, receipts,
+  photos, and Charging Sessions unchanged.
+
+### Phase 3B.4.1 selected out-and-back route
+
+- [ ] **Pending Migration only:** review `20260715220000_trip_selected_out_and_back.sql` after the
+  applied 3B.4 Migration. Do not apply it during implementation and do not modify older Migrations.
+- [ ] **Candidate boundary:** Candidate GET must require an allowlisted administrator and owner Draft,
+  require a round-trip Base Route, use `private, no-store`, cap/paginate inventory reads, and return
+  only the compact Station DTO with the current administrator's visited boolean. It must not return
+  user IDs, Visit rows/IDs, GPS history, tokens, raw provider data, or private endpoint metadata.
+- [ ] **Client intent only:** Optimize Selected Stations may submit only Trip ID, expected revision,
+  and Station IDs. Reject unknown keys such as coordinates, Visit status, leg, sequence, source,
+  lock state, metrics, Geometry, provider, algorithm, and persistence policy.
+- [ ] **Authoritative reload:** after browser selection, reload every Station on the server and reject
+  a missing/closed/invalid-coordinate/endpoint Station. Accept visited Stations, count them as Stops
+  and dwell time, and exclude them only from expected-new Check-ins.
+- [ ] **Directed Matrix isolation:** Matrix code must be server-only, use source/destination tiling
+  within the documented coordinate/element/request limits, retain A→B and B→A independently, retain
+  `null` as unreachable, use bounded retry/timeout, enforce request/runtime/iteration guards, and
+  never return or log the raw Matrix, URL, or server token.
+- [ ] **Exact selected set:** verify Origin → outbound Stops → fixed Destination → return Stops →
+  Origin contains every selected Station exactly once. Any unreachable Station, incomplete seed,
+  Directions segment failure, stale revision, or technical failure must leave the previous Stops,
+  Segments, metrics, and revision intact—never save a partial route.
+- [ ] **Heuristic honesty:** confirm no UI promises a guaranteed/mathematically shortest route.
+  Technical Station/request/iteration/runtime caps must be labelled internal safety guards and must
+  not be stored as Trip business settings.
+- [ ] **Directions final authority:** outbound and return must be calculated independently with the
+  existing segmented Directions path. Return Geometry must not be reversed outbound Geometry; all
+  segment totals must match saved authoritative metrics; Geometry-off mode must still save Stops and
+  metrics while leaving planned Segment rows absent and preview rebuildable.
+- [ ] **Legacy-budget independence:** force results beyond old time/distance values. All selected
+  Stations must remain, the valid route must save, objective Additional time/distance must be shown,
+  and no budget warning, correction, blocking, or automatic Station deletion may run in this mode.
+- [ ] **RPC hardening:** verify `admin_save_selected_out_and_back_route` is `security definer`, fixes
+  `search_path`, checks `auth.uid()`, `app_admins`, owner/Draft/round-trip/revision/base prerequisites,
+  exact selected/Stop equality, continuous outbound-before-return sequence, manual/locked/planned
+  metadata, Station status, Segment continuity, and metric totals before its atomic replacement.
+- [ ] **No side effects:** confirm selection and optimization do not create/update/delete Visits,
+  Stations, public status, homepage data, receipts, photos, Charging Sessions, endpoint coordinates,
+  or any Phase 3B.5 confirmation/public state.
+- [ ] **Secret scan:** production client chunks must not contain `MAPBOX_SERVER_ACCESS_TOKEN`,
+  `SUPABASE_SECRET_KEY`, service-role material, raw Matrix/Directions payloads, or internal URLs.
+
+### Parking information boundary
+
+- [ ] **Private preference table:** `station_user_preferences` must use `(user_id, station_id)` as
+  its primary key, reference `auth.users` and `stations`, enable RLS, and allow authenticated reads
+  only where `user_id = auth.uid()`. It must not be joined into a public View or public DTO.
+- [ ] **RPC-only writes:** Browser roles receive SELECT only. `admin_set_station_pay_to_park` must be
+  `security definer`, fix `search_path`, derive `user_id` from `auth.uid()`, verify `app_admins`,
+  verify the Station exists, reject null input, and expose no client `user_id` parameter.
+- [ ] **Idempotent removal:** true must upsert the owner/Station row; false must delete only that
+  owner/Station row. Repeated true/false calls must succeed without duplicates.
+- [ ] **No authoritative claim:** UI copy must say **Pay to park** and “Personal marker based on your
+  Tesla app review.” It must never say Tesla verified, official, or confirmed by Tesla.
+- [ ] **No route/data side effects:** Mark/Unmark must not modify `stations`, `station_visits`,
+  `public_station_status`, `trip_plans`, `trip_plan_stops`, `trip_plan_segments`, metrics, or route
+  revisions and must not call Mapbox, Tesla, NLR, or any external parking source.
+- [ ] **Admin-private hydration:** Candidate, search, and Stop repositories must scope preference
+  reads to the current administrator. Missing rows map to false; another user's marker must never
+  enter the authenticated Admin DTO.
+- [ ] **Selection boundary:** Select-all may skip marked unselected Stations, but direct selection and
+  optimization must keep every explicitly selected Station. Unselecting a Station or deleting a
+  Draft/Stop must not delete the preference.

@@ -85,7 +85,6 @@ export function mapNlrStation(
   }
 
   const externalId = String(station.id);
-
   return {
     id: `nlr-${externalId}`,
     externalId,

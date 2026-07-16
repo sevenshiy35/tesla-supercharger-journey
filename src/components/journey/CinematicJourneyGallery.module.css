@@ -3,6 +3,7 @@
   overflow: hidden;
   padding: clamp(5.5rem, 8vw, 8rem) clamp(1.25rem, 3.5vw, 3.5rem);
   color: #f7f3e3;
+  font-family: var(--font-ui);
   background:
     radial-gradient(circle at 12% 0%, rgba(52, 144, 139, 0.24), transparent 34rem),
     linear-gradient(180deg, #102d2a 0%, #173f3c 100%);
@@ -30,16 +31,19 @@
 .sectionHeader h2 {
   max-width: 58rem;
   margin: 0;
-  font-family: Georgia, "Times New Roman", "Songti SC", serif;
+  font-family: var(--font-display-en);
   font-size: clamp(2.6rem, 5.4vw, 5.75rem);
   font-weight: 400;
   letter-spacing: -0.045em;
   line-height: 0.94;
+  text-wrap: balance;
 }
 
 .section[data-language="zh"] .sectionHeader h2 {
+  font-family: var(--font-story-cn);
   font-size: clamp(2.6rem, 4.4vw, 4.9rem);
-  letter-spacing: -0.055em;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
 }
 
 .sectionHeader > span {
@@ -134,11 +138,18 @@
 .introCard h3 {
   max-width: 23rem;
   margin: 0;
-  font-family: Georgia, "Times New Roman", "Songti SC", serif;
+  font-family: var(--font-display-en);
   font-size: clamp(1.55rem, 2.6vw, 2.4rem);
   font-weight: 400;
   letter-spacing: -0.035em;
   line-height: 1.02;
+  text-wrap: balance;
+}
+
+.section[data-language="zh"] .introCard h3 {
+  font-family: var(--font-story-cn);
+  letter-spacing: 0.02em;
+  line-height: 1.15;
 }
 
 .introduction {
@@ -172,7 +183,9 @@
 }
 
 .stat strong {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-data);
+  font-feature-settings: "tnum" 1, "ss01" 1;
+  font-variant-numeric: tabular-nums;
   font-size: clamp(1.45rem, 2vw, 2rem);
   font-weight: 400;
   line-height: 1;
@@ -202,15 +215,25 @@
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.16em;
+  font-family: var(--font-data);
+  font-feature-settings: "tnum" 1, "ss01" 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .sceneTitle h3 {
   margin: 0;
-  font-family: Georgia, "Times New Roman", "Songti SC", serif;
+  font-family: var(--font-display-en);
   font-size: clamp(2.5rem, 5vw, 5rem);
   font-weight: 400;
   letter-spacing: -0.055em;
   line-height: 0.92;
+  text-wrap: balance;
+}
+
+.section[data-language="zh"] .sceneTitle h3 {
+  font-family: var(--font-story-cn);
+  letter-spacing: 0.02em;
+  line-height: 1.15;
 }
 
 .sceneTitle p {

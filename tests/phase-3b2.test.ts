@@ -1,0 +1,144 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import test from "node:test";
+import { endpointDistanceMeters } from "../src/lib/trips/distance";
+import { parseGeocodingResults } from "../src/lib/mapbox/geocoding-parser";
+import { sanitizeLineString } from "../src/lib/mapbox/geometry";
+import { classifyTripMapFatalError } from "../src/lib/mapbox/map-error";
+import { buildTripBaseRoute } from "../src/lib/mapbox/route-builder";
+import type { TripEndpoint } from "../src/lib/trips/types";
+
+const root = process.cwd();
+const source = (path: string) => readFile(`${root}/${path}`, "utf8");
+const migration = source("supabase/migrations/20260715180000_trip_route_endpoints.sql");
+const actions = source("src/app/admin/trip-actions.ts");
+const geocodeRoute = source("src/app/api/admin/trips/geocode/route.ts");
+const geocoding = source("src/lib/mapbox/geocoding.ts");
+const directions = source("src/lib/mapbox/directions.ts");
+const serverClient = source("src/lib/mapbox/server-client.ts");
+const picker = source("src/components/admin/TripEndpointPicker.tsx");
+const planner = source("src/components/admin/TripRoutePlanner.tsx");
+const routeBasics = source("src/components/admin/TripRouteBasicsFields.tsx");
+const routeMap = source("src/components/admin/TripRouteMap.tsx");
+const detail = source("src/app/admin/(protected)/trips/[id]/page.tsx");
+const repository = source("src/lib/trips/repository.ts");
+const envExample = source(".env.example");
+const phaseDoc = source("PHASE-3B.md");
+const securityDoc = source("SECURITY-CHECKLIST.md");
+const homepageMap = source("src/components/map/SuperchargerMap.tsx");
+
+function functionBody(sql: string, name: string) {
+  const start = sql.indexOf(`function public.${name}`);
+  assert.notEqual(start, -1, `${name} missing`);
+  const end = sql.indexOf("$$;", start);
+  return sql.slice(start, end + 3);
+}
+
+const endpoint: TripEndpoint = { source: "current_location", label: "A", fullAddress: null, latitude: 40, longitude: -75, stationId: null, providerId: null };
+const routeFixture = (offset = 0) => ({ distanceMeters: 1_000 + offset, durationSeconds: 100 + offset, geometry: { type: "LineString" as const, coordinates: [[-75 + offset / 1000, 40] as [number, number], [-74.9, 40.1] as [number, number]] } });
+
+test("3B.2 01 endpoint source columns exist", async () => assert.match(await migration, /origin_source text[\s\S]+destination_source text/i));
+test("3B.2 02 endpoint full addresses exist", async () => assert.match(await migration, /origin_full_address text[\s\S]+destination_full_address text/i));
+test("3B.2 03 source enum is exact", async () => assert.match(await migration, /in \('mapbox', 'current_location', 'station'\)/i));
+test("3B.2 04 origin Station FK targets stations", async () => assert.match(await migration, /origin_station_id uuid references public\.stations\(id\) on delete set null/i));
+test("3B.2 05 destination Station FK targets stations", async () => assert.match(await migration, /destination_station_id uuid references public\.stations\(id\) on delete set null/i));
+test("3B.2 06 provider IDs are bounded", async () => assert.match(await migration, /origin_provider_id_check[\s\S]+300/i));
+test("3B.2 07 route revision defaults zero", async () => assert.match(await migration, /route_input_revision bigint not null default 0/i));
+test("3B.2 08 route revision is nonnegative", async () => assert.match(await migration, /route_input_revision >= 0/i));
+test("3B.2 09 no public Trip View is created", async () => assert.doesNotMatch(await migration, /create\s+(or replace\s+)?view\s+public\..*trip/i));
+test("3B.2 10 endpoint RPC is security definer", async () => assert.match(functionBody(await migration, "admin_update_trip_plan_endpoints"), /security definer/i));
+test("3B.2 11 endpoint RPC fixes search path", async () => assert.match(functionBody(await migration, "admin_update_trip_plan_endpoints"), /set search_path = public/i));
+test("3B.2 12 endpoint RPC checks administrators", async () => assert.match(functionBody(await migration, "admin_update_trip_plan_endpoints"), /public\.app_admins/i));
+test("3B.2 13 endpoint RPC checks ownership", async () => assert.match(functionBody(await migration, "admin_update_trip_plan_endpoints"), /tp\.user_id = v_user_id/i));
+test("3B.2 14 endpoint RPC restricts Drafts", async () => assert.match(functionBody(await migration, "admin_update_trip_plan_endpoints"), /status <> 'draft'/i));
+test("3B.2 15 Mapbox endpoints require provider IDs", async () => assert.match(functionBody(await migration, "admin_update_trip_plan_endpoints"), /source = 'mapbox'[\s\S]+provider_id is null/i));
+test("3B.2 16 current location forbids provider IDs", async () => assert.match(functionBody(await migration, "admin_update_trip_plan_endpoints"), /source = 'current_location'[\s\S]+provider_id is not null/i));
+test("3B.2 17 station endpoint reads Station row", async () => assert.match(functionBody(await migration, "admin_update_trip_plan_endpoints"), /select s\.\* into v_origin_station from public\.stations/i));
+test("3B.2 18 Station coordinate forgery is rejected", async () => assert.match(functionBody(await migration, "admin_update_trip_plan_endpoints"), /coordinates do not match the Station directory/i));
+test("3B.2 19 changed endpoints increment revision", async () => assert.match(functionBody(await migration, "admin_update_trip_plan_endpoints"), /if v_changed[\s\S]+route_input_revision = tp\.route_input_revision \+ 1/i));
+test("3B.2 20 unchanged endpoints preserve revision", async () => assert.match(functionBody(await migration, "admin_update_trip_plan_endpoints"), /if v_changed then/i));
+test("3B.2 21 changed endpoints delete Segments", async () => assert.match(functionBody(await migration, "admin_update_trip_plan_endpoints"), /delete from public\.trip_plan_segments/i));
+test("3B.2 22 changed endpoints delete Stops", async () => assert.match(functionBody(await migration, "admin_update_trip_plan_endpoints"), /delete from public\.trip_plan_stops/i));
+test("3B.2 23 changed endpoints clear metrics", async () => assert.match(functionBody(await migration, "admin_update_trip_plan_endpoints"), /base_distance_meters = null[\s\S]+route_calculated_at = null/i));
+test("3B.2 24 swap includes full endpoint metadata", async () => { const body = functionBody(await migration, "admin_swap_trip_plan_endpoints"); for (const field of ["source", "label", "full_address", "latitude", "longitude", "station_id", "provider_id"]) assert.match(body, new RegExp(`origin_${field} = v_plan\\.destination_${field}`)); });
+test("3B.2 25 settings use null-safe change detection", async () => assert.match(functionBody(await migration, "admin_update_trip_plan_settings"), /is distinct from/i));
+
+test("3B.2 26 geocode rejects short query", async () => assert.match(await geocodeRoute, /query\.length < 3/));
+test("3B.2 27 geocode rejects long query", async () => assert.match(await geocodeRoute, /query\.length > 256/));
+test("3B.2 28 geocode rejects semicolons", async () => assert.match(await geocodeRoute, /query\.includes\(";"\)/));
+test("3B.2 29 geocode requires Admin", async () => assert.match(await geocodeRoute, /await requireAdmin\(\)/));
+test("3B.2 30 geocode is private no-store", async () => assert.match(await geocodeRoute, /Cache-Control.*private, no-store/i));
+test("3B.2 31 permanent Geocoding is enabled", async () => assert.match(await geocoding, /permanent: "true"/));
+test("3B.2 32 Geocoding is US-only", async () => assert.match(await geocoding, /country: "US"/));
+test("3B.2 33 Geocoding result limit is six", async () => assert.match(await geocoding, /limit: "6"/));
+test("3B.2 34 parser emits only safe DTO fields", () => { const result = parseGeocodingResults({ features: [{ id: "x", properties: { mapbox_id: "p", name: "Home", full_address: "1 Main St", feature_type: "address", secret: "no" }, geometry: { type: "Point", coordinates: [-75, 40] }, raw: "no" }] })[0]; assert.deepEqual(Object.keys(result).sort(), ["attribution", "featureType", "fullAddress", "label", "latitude", "longitude", "providerId"].sort()); });
+
+test("3B.2 35 picker debounces about 400 ms", async () => assert.match(await picker, /setTimeout\(async \(\) =>[\s\S]+400/));
+test("3B.2 36 picker cancels obsolete browser requests", async () => assert.match(await picker, /AbortController[\s\S]+controller\.abort\(\)/));
+test("3B.2 37 picker ignores stale query responses", async () => assert.match(await picker, /requestSequence !== sequence\.current/));
+test("3B.2 38 geolocation is not requested on page load", async () => { const body = await picker; assert.doesNotMatch(body.slice(0, body.indexOf("function requestLocation")), /getCurrentPosition/); });
+test("3B.2 39 geolocation requires an explicit button", async () => assert.match(await picker, /onClick=\{requestLocation\}/));
+test("3B.2 40 GPS does not enter localStorage", async () => assert.doesNotMatch(await picker, /localStorage|sessionStorage/));
+test("3B.2 41 GPS privacy notice is visible", async () => assert.match(await picker, /stored privately as part of this trip plan/));
+test("3B.2 42 station search is reused", async () => assert.match(await picker, /searchStationsAction/));
+test("3B.2 43 Station endpoint does not call a Stop action", async () => assert.doesNotMatch(await picker, /trip_plan_stops|createTripPlanStop|addTripStop/i));
+
+test("3B.2 44 Directions uses mapbox driving", async () => assert.match(await directions, /directions\/v5\/mapbox\/driving/));
+test("3B.2 45 Directions asks for GeoJSON", async () => assert.match(await directions, /geometries: "geojson"/));
+test("3B.2 46 Directions asks for full overview", async () => assert.match(await directions, /overview: "full"/));
+test("3B.2 47 Directions disables steps and alternatives", async () => { const body = await directions; assert.match(body, /steps: "false"/); assert.match(body, /alternatives: "false"/); });
+test("3B.2 48 Directions does not use live traffic", async () => assert.doesNotMatch(await directions, /driving-traffic|depart_at|voice_instructions|banner_instructions/));
+test("3B.2 49 retry statuses are limited", async () => assert.match(await serverClient, /new Set\(\[429, 502, 503, 504\]\)/));
+test("3B.2 50 retry attempts are bounded", async () => assert.match(await serverClient, /MAX_ATTEMPTS = 3/));
+test("3B.2 51 Directions timeout is 15 seconds", async () => assert.match(await directions, /15_000/));
+test("3B.2 52 401 and 403 map to safe errors", async () => { const body = await serverClient; assert.match(body, /status === 401/); assert.match(body, /status === 403/); });
+test("3B.2 53 no-route response is rejected", async () => assert.match(await directions, /routes\[0\][\s\S]+no_route/i));
+
+test("3B.2 54 valid LineString passes", () => assert.deepEqual(sanitizeLineString({ type: "LineString", coordinates: [[-75, 40], [-74, 41]] }), { type: "LineString", coordinates: [[-75, 40], [-74, 41]] }));
+test("3B.2 55 non-LineString fails", () => assert.throws(() => sanitizeLineString({ type: "Point", coordinates: [-75, 40] })));
+test("3B.2 56 fewer than two coordinates fails", () => assert.throws(() => sanitizeLineString({ type: "LineString", coordinates: [[-75, 40]] })));
+test("3B.2 57 longitude range is checked", () => assert.throws(() => sanitizeLineString({ type: "LineString", coordinates: [[-181, 40], [-74, 41]] })));
+test("3B.2 58 latitude range is checked", () => assert.throws(() => sanitizeLineString({ type: "LineString", coordinates: [[-75, 91], [-74, 41]] })));
+test("3B.2 59 NaN is rejected", () => assert.throws(() => sanitizeLineString({ type: "LineString", coordinates: [[Number.NaN, 40], [-74, 41]] })));
+test("3B.2 60 Infinity is rejected", () => assert.throws(() => sanitizeLineString({ type: "LineString", coordinates: [[-75, Infinity], [-74, 41]] })));
+test("3B.2 61 null coordinate is rejected", () => assert.throws(() => sanitizeLineString({ type: "LineString", coordinates: [[null, 40], [-74, 41]] })));
+test("3B.2 62 raw Geometry properties are stripped", () => assert.deepEqual(Object.keys(sanitizeLineString({ type: "LineString", coordinates: [[-75, 40], [-74, 41]], properties: { secret: true } })), ["type", "coordinates"]));
+
+test("3B.2 63 One-way calls Directions once", async () => { let calls = 0; const route = await buildTripBaseRoute("one_way", { longitude: -75, latitude: 40 }, { longitude: -74, latitude: 41 }, async () => { calls++; return routeFixture(); }); assert.equal(calls, 1); assert.equal(route.segments.length, 1); });
+test("3B.2 64 One-way segment is outbound", async () => { const route = await buildTripBaseRoute("one_way", { longitude: -75, latitude: 40 }, { longitude: -74, latitude: 41 }, async () => routeFixture()); assert.equal(route.segments[0].leg, "outbound"); });
+test("3B.2 65 Round-trip calls Directions twice", async () => { const calls: unknown[] = []; await buildTripBaseRoute("round_trip", { longitude: -75, latitude: 40 }, { longitude: -74, latitude: 41 }, async (from, to) => { calls.push([from, to]); return routeFixture(calls.length); }); assert.equal(calls.length, 2); });
+test("3B.2 66 Return request reverses endpoint order", async () => { const calls: Array<[unknown, unknown]> = []; const a = { longitude: -75, latitude: 40 }; const b = { longitude: -74, latitude: 41 }; await buildTripBaseRoute("round_trip", a, b, async (from, to) => { calls.push([from, to]); return routeFixture(calls.length); }); assert.deepEqual(calls[1], [b, a]); });
+test("3B.2 67 Return geometry is provider-produced", async () => { let call = 0; const route = await buildTripBaseRoute("round_trip", { longitude: -75, latitude: 40 }, { longitude: -74, latitude: 41 }, async () => routeFixture(++call)); assert.notDeepEqual(route.segments[0].geometry, route.segments[1].geometry); });
+test("3B.2 68 Round-trip totals both legs", async () => { let call = 0; const route = await buildTripBaseRoute("round_trip", { longitude: -75, latitude: 40 }, { longitude: -74, latitude: 41 }, async () => routeFixture(++call)); assert.equal(route.distanceMeters, 2003); assert.equal(route.durationSeconds, 203); });
+test("3B.2 69 Round-trip failure rejects all", async () => { let call = 0; await assert.rejects(buildTripBaseRoute("round_trip", { longitude: -75, latitude: 40 }, { longitude: -74, latitude: 41 }, async () => { if (++call === 2) throw new Error("return failed"); return routeFixture(); })); });
+test("3B.2 70 save RPC checks expected revision", async () => assert.match(functionBody(await migration, "admin_save_trip_base_route"), /route_input_revision <> p_expected_revision[\s\S]+Stale route result/i));
+test("3B.2 71 save RPC does not create Stops", async () => assert.doesNotMatch(functionBody(await migration, "admin_save_trip_base_route"), /insert into public\.trip_plan_stops/i));
+test("3B.2 72 saved planned metrics initially equal base", async () => assert.match(functionBody(await migration, "admin_save_trip_base_route"), /planned_distance_meters = p_base_distance_meters[\s\S]+planned_drive_seconds = p_base_duration_seconds[\s\S]+planned_stop_seconds = 0/i));
+
+test("3B.2 73 Origin Picker exists", async () => assert.match(await routeBasics, /title="Origin"/));
+test("3B.2 74 Destination Picker exists", async () => { const body = await routeBasics; assert.match(body, /Turnaround destination/); assert.match(body, /"Destination"/); });
+test("3B.2 75 all three endpoint sources are offered", async () => { const body = await picker; for (const sourceName of ["mapbox", "current_location", "station"]) assert.match(body, new RegExp(`value: "${sourceName}"`)); });
+test("3B.2 76 Swap control exists", async () => assert.match(await planner, /Swap/));
+test("3B.2 77 incomplete endpoints disable calculation", async () => assert.match(await planner, /!endpointsComplete/));
+test("3B.2 78 endpoints under 100m are rejected", () => assert.ok(endpointDistanceMeters(endpoint, { ...endpoint, latitude: 40.0001 }) < 100));
+test("3B.2 79 route map creates endpoint markers", async () => assert.match(await routeMap, /new mapboxgl\.Marker/));
+test("3B.2 80 return route uses a dash pattern", async () => assert.match(await routeMap, /line-dasharray/));
+test("3B.2 81 route summary formats miles", async () => assert.match(await planner, /formatTripDistance/));
+test("3B.2 82 route summary formats duration", async () => assert.match(await planner, /formatTripDuration/));
+test("3B.2 83 Clear Route explicitly keeps endpoints", async () => assert.match(await planner, /keeps your origin and destination/));
+test("3B.2 84 Planned Stops advances beyond the completed 3B.2 placeholder", async () => {
+  assert.match(await detail, /hasPlannedStops/);
+  assert.doesNotMatch(await detail, /Suggested Stops — available in Phase 3B\.3/);
+});
+test("3B.2 85 list repository still omits Geometry", async () => { const body = await repository; const list = body.slice(body.indexOf("TRIP_PLAN_LIST_COLUMNS"), body.indexOf("export class")); assert.doesNotMatch(list, /geometry/i); });
+test("3B.2 86 server token is non-public env", async () => { const body = await envExample; assert.match(body, /^MAPBOX_SERVER_ACCESS_TOKEN=/m); assert.doesNotMatch(body, /NEXT_PUBLIC_MAPBOX_SERVER_ACCESS_TOKEN/); });
+test("3B.2 87 client sources contain no server token", async () => assert.doesNotMatch(`${await picker}\n${await planner}\n${await routeMap}`, /MAPBOX_SERVER_ACCESS_TOKEN/));
+test("3B.2 88 Trip runtime calls no Matrix or Optimization API", async () => assert.doesNotMatch(`${await actions}\n${await directions}`, /matrix\/v|optimization\/v|api\.mapbox\.com\/.*matrix/i));
+test("3B.2 89 homepage map remains Trip-independent", async () => assert.doesNotMatch(await homepageMap, /TripRoute|trip_plan|@\/lib\/trips/i));
+test("3B.2 90 docs record safe-default persistence review", async () => { assert.match(await phaseDoc, /MAPBOX_PERSIST_ROUTE_GEOMETRY/); assert.match(await securityDoc, /MAPBOX_SERVER_ACCESS_TOKEN/); });
+test("3B.2 91 Trip map reuses the working light style", async () => assert.match(await routeMap, /mapbox\/light-v11/));
+test("3B.2 92 recoverable tile errors do not close the map", () => assert.equal(classifyTripMapFatalError("Failed to load tile 8/74/96"), null));
+test("3B.2 93 WebGL initialization errors are fatal", () => assert.equal(classifyTripMapFatalError("Failed to initialize WebGL"), "webgl"));
+test("3B.2 94 token authorization errors are fatal", () => assert.equal(classifyTripMapFatalError("Request failed with status 403 Forbidden"), "style_access"));
+test("3B.2 95 style-load errors are fatal", () => assert.equal(classifyTripMapFatalError("Failed to load style"), "style_load"));
+test("3B.2 96 Mapbox mount keeps a real height after its CSS changes positioning", async () => assert.match(await routeMap, /className="absolute inset-0">\s*<div ref=\{containerRef\}[\s\S]+className="h-full w-full"/));

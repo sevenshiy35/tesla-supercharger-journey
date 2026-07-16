@@ -76,7 +76,7 @@
 .prototypeHeader h1 {
   max-width: 780px;
   margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display-en);
   font-size: clamp(2.25rem, 5vw, 5.5rem);
   font-weight: 400;
   line-height: 0.94;
@@ -111,7 +111,7 @@
 
 .headerBadge strong {
   color: var(--cream);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display-en);
   font-size: 1.05rem;
   font-weight: 400;
   letter-spacing: 0.15em;
@@ -682,7 +682,7 @@
 
 .introCard h2 {
   margin: 0 0 12px;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display-en);
   font-size: clamp(1.35rem, 2vw, 2.05rem);
   font-weight: 400;
   line-height: 1.02;
@@ -714,7 +714,7 @@
 
 .stat strong {
   display: block;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display-en);
   font-size: clamp(1.4rem, 2.2vw, 2.25rem);
   font-weight: 400;
   line-height: 0.9;
@@ -750,7 +750,7 @@
 
 .sceneTitle h2 {
   margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display-en);
   font-size: clamp(2.2rem, 5vw, 5.3rem);
   font-weight: 400;
   line-height: 0.9;
@@ -844,7 +844,7 @@
 
 .controlsHeading h2 {
   margin: 3px 0 0;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display-en);
   font-size: 1.45rem;
   font-weight: 400;
 }
