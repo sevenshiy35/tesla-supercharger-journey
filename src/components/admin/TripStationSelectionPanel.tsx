@@ -184,6 +184,18 @@ export function TripStationSelectionPanel({
   const changePayToPark = useCallback(async (stationId: string, payToPark: boolean) => {
     if (preferencePendingStationId) return;
     const previous = candidates.find((candidate) => candidate.stationId === stationId)?.payToPark ?? false;
+    const removedFromSelection = payToPark && !previous && selectedIdsRef.current.has(stationId);
+    if (removedFromSelection) {
+      setSelectedIds((current) => {
+        if (!current.has(stationId)) return current;
+        const next = new Set(current);
+        next.delete(stationId);
+        selectedIdsRef.current = next;
+        return next;
+      });
+      setActiveStationId((current) => current === stationId ? null : current);
+      setSelectionMessage(null);
+    }
     preferenceOverridesRef.current.set(stationId, payToPark);
     setCandidates((current) => current.map((candidate) => candidate.stationId === stationId
       ? { ...candidate, payToPark }
@@ -202,6 +214,16 @@ export function TripStationSelectionPanel({
       setCandidates((current) => current.map((candidate) => candidate.stationId === stationId
         ? { ...candidate, payToPark: previous }
         : candidate));
+      if (removedFromSelection) {
+        setSelectedIds((current) => {
+          if (current.has(stationId)) return current;
+          const restored = new Set(current);
+          restored.add(stationId);
+          selectedIdsRef.current = restored;
+          return restored;
+        });
+        setActiveStationId((current) => current ?? stationId);
+      }
       setPreferenceError(response.error ?? "The pay-to-park marker could not be saved.");
       return;
     }

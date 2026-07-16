@@ -11,6 +11,7 @@ function filesUnder(path: string): string[] {
   });
 }
 const migration = source("supabase/migrations/20260716120000_station_user_preferences.sql");
+const fixMigration = source("supabase/migrations/20260716130000_fix_station_pay_to_park_rpc.sql");
 const action = source("src/app/admin/station-preference-actions.ts");
 const validation = source("src/lib/trips/validation.ts");
 const preferences = source("src/lib/stations/admin-preferences.ts");
@@ -31,25 +32,74 @@ const databaseTypes = source("src/types/database.generated.ts");
 const docs = `${source("README.md")}\n${source("PHASE-3B.md")}\n${source("SECURITY-CHECKLIST.md")}`;
 const applicationSource = filesUnder("src").map((path) => readFileSync(path, "utf8")).join("\n");
 
-const rpc = migration.slice(migration.indexOf("create function public.admin_set_station_pay_to_park"));
+const fixedRpc = fixMigration.slice(fixMigration.indexOf("create or replace function public.admin_set_station_pay_to_park"));
 const cases: Array<[string, () => void]> = [];
 const add = (name: string, run: () => void) => cases.push([name, run]);
+
+test("Pay to park fix uses a new function-only Migration", () => {
+  assert.match(fixMigration, /create or replace function public\.admin_set_station_pay_to_park/);
+  assert.doesNotMatch(fixMigration, /create table|alter table|drop table/i);
+  assert.equal((fixMigration.match(/create or replace function/gi) ?? []).length, 1);
+});
+
+test("Mark pay to park no longer has the 42702 conflict target", () => {
+  assert.match(fixedRpc, /on conflict on constraint station_user_preferences_pkey do update/i);
+  assert.doesNotMatch(fixedRpc, /on conflict\s*\(\s*user_id\s*,\s*station_id\s*\)/i);
+});
+
+test("fixed Pay to park RPC preserves its security boundary and grants", () => {
+  assert.match(fixedRpc, /security definer[\s\S]+set search_path = public/);
+  assert.match(fixedRpc, /v_user_id uuid := auth\.uid\(\)/);
+  assert.match(fixedRpc, /from public\.app_admins as aa[\s\S]+aa\.user_id = v_user_id/);
+  assert.match(fixedRpc, /revoke all on function public\.admin_set_station_pay_to_park\(uuid, boolean\) from public, anon/);
+  assert.match(fixedRpc, /grant execute on function public\.admin_set_station_pay_to_park\(uuid, boolean\) to authenticated/);
+});
+
+test("fixed Pay to park RPC upserts true idempotently", () => {
+  assert.match(fixedRpc, /if p_pay_to_park then[\s\S]+insert into public\.station_user_preferences as sup/);
+  assert.match(fixedRpc, /on conflict on constraint station_user_preferences_pkey do update[\s\S]+set pay_to_park = excluded\.pay_to_park/);
+  assert.match(fixedRpc, /returning sup\.updated_at into v_updated_at/);
+});
+
+test("fixed Pay to park RPC deletes false idempotently", () => {
+  assert.match(fixedRpc, /else[\s\S]+delete from public\.station_user_preferences as sup[\s\S]+where sup\.user_id = v_user_id[\s\S]+and sup\.station_id = p_station_id/);
+  assert.match(fixedRpc, /delete from[\s\S]+v_updated_at := now\(\)[\s\S]+return query[\s\S]+select p_station_id, p_pay_to_park, v_updated_at/);
+  assert.doesNotMatch(fixedRpc, /get diagnostics|row_count|no preference row/i);
+});
+
+test("fixed Pay to park RPC derives user identity instead of accepting it", () => {
+  const signature = fixedRpc.slice(0, fixedRpc.indexOf("returns table"));
+  assert.doesNotMatch(signature, /p_user_id|user_id uuid/i);
+  assert.match(fixedRpc, /values \([\s\S]+v_user_id,[\s\S]+p_station_id,[\s\S]+true/);
+});
+
+test("fixed Pay to park RPC qualifies potentially ambiguous database fields", () => {
+  assert.match(fixedRpc, /from public\.stations as s[\s\S]+where s\.id = p_station_id/);
+  assert.match(fixedRpc, /from public\.station_user_preferences as sup[\s\S]+sup\.user_id = v_user_id[\s\S]+sup\.station_id = p_station_id/);
+  assert.match(fixedRpc, /excluded\.pay_to_park/);
+  assert.match(fixedRpc, /sup\.updated_at/);
+});
+
+test("fixed Pay to park RPC cannot mutate Trip Visit Station or route revision data", () => {
+  assert.doesNotMatch(fixedRpc, /update public\.stations|delete from public\.stations|insert into public\.stations/i);
+  assert.doesNotMatch(fixedRpc, /station_visits|charging_sessions|visit_photos|trip_plans|trip_plan_stops|trip_plan_segments|route_input_revision/i);
+});
 
 // Database and RPC (1-14)
 add("01 preference primary key is user plus Station", () => assert.match(migration, /primary key \(user_id, station_id\)/));
 add("02 missing row maps to false", () => { assert.match(migration, /pay_to_park boolean not null default false/); assert.match(candidateRepository, /payToPark: payToParkStationIds\.has\(row\.id\)/); });
-add("03 Admin can mark a Station", () => assert.match(rpc, /if p_pay_to_park then[\s\S]+insert into public\.station_user_preferences/));
-add("04 Admin can remove a mark", () => assert.match(rpc, /else[\s\S]+delete from public\.station_user_preferences/));
-add("05 repeated marking is idempotent", () => assert.match(rpc, /on conflict \(user_id, station_id\) do update/));
-add("06 non-admin is rejected", () => assert.match(rpc, /public\.app_admins[\s\S]+Administrator access is required/));
-add("07 unauthenticated request is rejected", () => assert.match(rpc, /auth\.uid\(\)[\s\S]+Authentication is required/));
-add("08 missing Station is rejected", () => assert.match(rpc, /not exists \([\s\S]+from public\.stations[\s\S]+Station not found/));
-add("09 Browser cannot choose user ID", () => { assert.doesNotMatch(rpc.slice(0, rpc.indexOf("returns table")), /p_user_id/); assert.match(validation, /stationPayToParkSchema[\s\S]+\.strict\(\)/); });
+add("03 Admin can mark a Station", () => assert.match(fixedRpc, /if p_pay_to_park then[\s\S]+insert into public\.station_user_preferences as sup/));
+add("04 Admin can remove a mark", () => assert.match(fixedRpc, /else[\s\S]+delete from public\.station_user_preferences as sup/));
+add("05 repeated marking is idempotent", () => assert.match(fixedRpc, /on conflict on constraint station_user_preferences_pkey do update/));
+add("06 non-admin is rejected", () => assert.match(fixedRpc, /public\.app_admins as aa[\s\S]+aa\.user_id = v_user_id[\s\S]+Administrator access is required/));
+add("07 unauthenticated request is rejected", () => assert.match(fixedRpc, /auth\.uid\(\)[\s\S]+Authentication is required/));
+add("08 missing Station is rejected", () => assert.match(fixedRpc, /not exists \([\s\S]+from public\.stations as s[\s\S]+s\.id = p_station_id[\s\S]+Station not found/));
+add("09 Browser cannot choose user ID", () => { assert.doesNotMatch(fixedRpc.slice(0, fixedRpc.indexOf("returns table")), /p_user_id/); assert.match(validation, /stationPayToParkSchema[\s\S]+\.strict\(\)/); });
 add("10 users can read only their own preference", () => assert.match(migration, /station_user_preferences_select_own[\s\S]+user_id = \(select auth\.uid\(\)\)/));
-add("11 marking does not modify Station", () => assert.doesNotMatch(rpc, /update public\.stations|delete from public\.stations|insert into public\.stations/i));
-add("12 marking does not modify Visit", () => assert.doesNotMatch(rpc, /station_visits|charging_sessions|visit_photos/i));
-add("13 marking does not modify Trip", () => assert.doesNotMatch(rpc, /trip_plans|trip_plan_stops|trip_plan_segments/i));
-add("14 marking does not advance route revision", () => assert.doesNotMatch(`${rpc}\n${action}`, /route_input_revision/));
+add("11 marking does not modify Station", () => assert.doesNotMatch(fixedRpc, /update public\.stations|delete from public\.stations|insert into public\.stations/i));
+add("12 marking does not modify Visit", () => assert.doesNotMatch(fixedRpc, /station_visits|charging_sessions|visit_photos/i));
+add("13 marking does not modify Trip", () => assert.doesNotMatch(fixedRpc, /trip_plans|trip_plan_stops|trip_plan_segments/i));
+add("14 marking does not advance route revision", () => assert.doesNotMatch(`${fixedRpc}\n${action}`, /route_input_revision/));
 
 // Authenticated DTOs (15-19)
 add("15 Candidate DTO returns true preferences", () => { assert.match(tripTypes, /interface TripStationCandidate[\s\S]+payToPark: boolean/); assert.match(candidateRepository, /payToParkStationIds\.has\(row\.id\)/); });
@@ -71,7 +121,7 @@ add("26 unmark restores the ordinary marker branch", () => { assert.match(select
 add("27 unmarked Popup offers Mark", () => assert.match(selectionMap, /"Mark pay to park"/));
 add("28 marked Popup offers Remove", () => assert.match(selectionMap, /"Remove pay-to-park mark"/));
 add("29 Popup disables duplicate clicks while saving", () => assert.match(selectionMap, /preferenceButton\.disabled = preferencePendingStationId === candidate\.stationId/));
-add("30 preference change does not mutate selected IDs", () => { const fn = selectionPanel.slice(selectionPanel.indexOf("async function changePayToPark"), selectionPanel.indexOf("function selectVisibleUnvisited")); assert.doesNotMatch(fn, /setSelectedIds|onToggle/); });
+add("30 marking pay to park immediately removes a selected Station", () => { const fn = selectionPanel.slice(selectionPanel.indexOf("const changePayToPark"), selectionPanel.indexOf("function selectVisibleUnvisited")); assert.match(fn, /removedFromSelection = payToPark && !previous && selectedIdsRef\.current\.has\(stationId\)/); assert.match(fn, /next\.delete\(stationId\)/); });
 add("31 preference change does not calculate a route", () => assert.doesNotMatch(action, /Matrix|Directions|Mapbox|optimize|calculateTrip|recalculate/i));
 
 // Search and lists (32-37)
@@ -134,6 +184,18 @@ test("The clickable all-candidate list is removed from beside the map", () => {
 
 test("Clear selection also dismisses the bulk-selection status message", () => {
   assert.match(selectionPanel, /setSelectedIds\(new Set\(\)\); setActiveStationId\(null\); setSelectionMessage\(null\)/);
+});
+
+test("a failed Pay to park save restores its optimistic deselection", () => {
+  const preferenceChange = selectionPanel.slice(selectionPanel.indexOf("const changePayToPark"), selectionPanel.indexOf("function selectVisibleUnvisited"));
+  assert.match(preferenceChange, /if \(removedFromSelection\) \{[\s\S]+restored\.add\(stationId\)/);
+  assert.match(preferenceChange, /setActiveStationId\(\(current\) => current \?\? stationId\)/);
+});
+
+test("removing a Pay to park marker does not automatically select the Station", () => {
+  const preferenceChange = selectionPanel.slice(selectionPanel.indexOf("const changePayToPark"), selectionPanel.indexOf("function selectVisibleUnvisited"));
+  assert.match(preferenceChange, /removedFromSelection = payToPark && !previous/);
+  assert.doesNotMatch(preferenceChange, /if \(!payToPark\)[\s\S]+\.add\(stationId\)/);
 });
 
 assert.equal(cases.length, 56, "The Pay to park suite must keep all 56 acceptance cases.");
