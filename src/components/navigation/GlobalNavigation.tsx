@@ -68,7 +68,7 @@ export function GlobalNavigation() {
             <span className="text-ink">Journey</span>
             <span className="text-accent-warm">2026</span>
           </span>
-          <span className="sm:hidden">J26</span>
+          <span className="sm:hidden">Journey2026</span>
         </Link>
 
         <div className="absolute left-1/2 hidden w-[480px] -translate-x-1/2 grid-cols-4 items-center lg:grid xl:w-[520px]">
