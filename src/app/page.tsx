@@ -1,14 +1,16 @@
-import { LatestCheckIns } from "@/components/check-ins/LatestCheckIns";
 import { SiteFooter } from "@/components/footer/SiteFooter";
 import { HeroSection } from "@/components/hero/HeroSection";
 import { JourneyIntro } from "@/components/journey/JourneyIntro";
 import { MapSectionClient } from "@/components/map/MapSectionClient";
 import { GlobalNavigation } from "@/components/navigation/GlobalNavigation";
+import { CurrentTripSection } from "@/components/trips/CurrentTripSection";
 import { getJourneySummary } from "@/lib/journey/calculations";
-import { filterJourneyCheckIns, filterJourneyStations } from "@/lib/journey/station-scope";
+import { filterJourneyStations } from "@/lib/journey/station-scope";
 import { StationRepositoryError } from "@/lib/stations/errors";
 import { createStationsRepository } from "@/lib/stations/repository-factory";
-import type { CheckInRecord, JourneySummary } from "@/types/journey";
+import { getPublicHomepageTrip } from "@/lib/trips/public-repository";
+import type { JourneySummary } from "@/types/journey";
+import type { PublicHomepageTrip } from "@/types/public-trip";
 import type { StationDataErrorView, StationDataSource } from "@/types/station-data";
 import type { SuperchargerStation } from "@/types/station";
 
@@ -49,7 +51,7 @@ export default async function Home() {
   let dataSource: StationDataSource =
     requestedSource === "nlr" || requestedSource === "supabase" ? requestedSource : "sample";
   let stations: SuperchargerStation[] = [];
-  let latestCheckIns: CheckInRecord[] = [];
+  let homepageTrip: PublicHomepageTrip | null = null;
   let summary: JourneySummary = getJourneySummary([]);
   let dataError: StationDataErrorView | undefined;
 
@@ -58,14 +60,15 @@ export default async function Home() {
     dataSource = selection.dataSource;
     stations = filterJourneyStations(await selection.repository.getAllStations());
     summary = await selection.repository.getJourneySummary(stations);
-    try {
-      latestCheckIns = filterJourneyCheckIns(await selection.repository.getLatestCheckIns(6));
-    } catch {
-      // The station directory remains useful when the optional latest-visit feed is unavailable.
-      latestCheckIns = [];
-    }
   } catch (error) {
     dataError = toStationDataError(error);
+  }
+
+  try {
+    homepageTrip = await getPublicHomepageTrip();
+  } catch {
+    // The station directory remains useful when the optional public Trip feed is unavailable.
+    homepageTrip = null;
   }
 
   return (
@@ -75,7 +78,7 @@ export default async function Home() {
         <HeroSection />
         <JourneyIntro summary={summary} dataSource={dataSource} />
         <MapSectionClient stations={stations} dataSource={dataSource} dataError={dataError} />
-        <LatestCheckIns checkIns={latestCheckIns} dataSource={dataSource} />
+        <CurrentTripSection trip={homepageTrip} />
       </main>
       <SiteFooter lastUpdated={summary.lastUpdated} dataSource={dataSource} />
     </>

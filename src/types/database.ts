@@ -100,6 +100,23 @@ type DatabaseOverrides = {
           p_max_stops: number | null;
         };
       };
+      get_public_homepage_trip: {
+        Args: Record<string, never>;
+        Returns: Json | null;
+      };
+      admin_set_trip_publication: {
+        Args: {
+          p_trip_plan_id: string;
+          p_is_public: boolean;
+          p_show_on_homepage: boolean;
+        };
+        Returns: Array<{
+          trip_plan_id: string;
+          is_public: boolean;
+          show_on_homepage: boolean;
+          updated_at: string;
+        }>;
+      };
       admin_update_trip_plan_endpoints: {
         Args: {
           p_origin_source: string | null;

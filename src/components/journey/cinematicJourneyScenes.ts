@@ -40,7 +40,6 @@ export const cinematicJourneyCopy = {
   en: {
     eyebrow: "A 2026 Supercharger travel journal",
     title: "A road trip told in light.",
-    subtitle: "Three American landscapes. One evolving journal of stations, photographs, and stories.",
     introTitle: "One station. One photo. One story.",
     sceneNavigation: "Travel scenes",
     sceneLabel: "Travel illustration",
@@ -49,7 +48,6 @@ export const cinematicJourneyCopy = {
   zh: {
     eyebrow: "2026 全美超级充电站旅行记录",
     title: "用光影讲述一场公路旅行。",
-    subtitle: "三种美国风景，一段持续更新的充电站、照片与故事记录。",
     introTitle: "一座站，一张照片，一段故事。",
     sceneNavigation: "旅行场景",
     sceneLabel: "旅行插画",

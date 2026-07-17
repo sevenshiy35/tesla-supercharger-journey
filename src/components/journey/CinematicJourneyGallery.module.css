@@ -10,10 +10,6 @@
 }
 
 .sectionHeader {
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(18rem, 0.55fr);
-  align-items: end;
-  gap: 2rem;
   width: min(100%, 1360px);
   margin: 0 auto clamp(1.75rem, 3vw, 2.75rem);
 }
@@ -44,13 +40,6 @@
   font-size: clamp(2.6rem, 4.4vw, 4.9rem);
   letter-spacing: 0.02em;
   line-height: 1.15;
-}
-
-.sectionHeader > span {
-  max-width: 30rem;
-  color: rgba(247, 243, 227, 0.72);
-  font-size: clamp(0.95rem, 1.2vw, 1.1rem);
-  line-height: 1.65;
 }
 
 .stage {
@@ -335,15 +324,6 @@
 @media (max-width: 820px) {
   .section {
     padding-inline: clamp(1rem, 4vw, 2rem);
-  }
-
-  .sectionHeader {
-    display: block;
-  }
-
-  .sectionHeader > span {
-    display: block;
-    margin-top: 1.25rem;
   }
 
   .stage {

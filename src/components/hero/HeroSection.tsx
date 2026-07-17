@@ -1,8 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { ArrowDown } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageProvider";
-import { HeroVisual } from "./HeroVisual";
 
 export function HeroSection() {
   const { copy, language } = useLanguage();
@@ -12,14 +12,18 @@ export function HeroSection() {
       id="journey"
       className="relative flex min-h-screen items-center overflow-hidden bg-canvas px-5 pb-14 pt-24 sm:px-8 lg:px-12"
     >
-      <div
-        aria-hidden
-        className="absolute inset-0 bg-[url('/images/hero/mesh-759.png')] bg-cover bg-center"
+      <Image
+        src="/images/hero/model-y-desert-road.png"
+        alt=""
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover object-[68%_bottom] lg:object-[center_bottom]"
       />
-      <div aria-hidden className="absolute inset-0 bg-canvas/10" />
-      <div className="relative z-10 mx-auto grid w-full max-w-[1360px] items-center gap-10 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)]">
-        <div className="min-w-0 max-w-[720px] rounded-[28px] border border-white/48 bg-white/26 p-6 shadow-[0_24px_70px_rgba(23,63,60,0.16)] backdrop-blur-2xl sm:p-8">
-          <p className="mb-4 font-ui text-[17px] font-semibold text-ink">{copy.hero.eyebrow}</p>
+      <div aria-hidden className="absolute inset-0 bg-[#fff8ed]/[0.04]" />
+      <div className="relative z-10 mx-auto w-full max-w-[1344px]">
+        <div className="w-full max-w-[544px] rounded-[36px] border border-white/65 bg-[#fff8ed]/95 p-6 shadow-[0_24px_70px_rgba(42,31,24,0.18)] backdrop-blur-xl sm:min-h-[370px] sm:px-[46px] sm:py-[42px] lg:translate-y-5">
+          <p className="mb-6 font-ui text-[17px] font-semibold text-ink">{copy.hero.eyebrow}</p>
           <h1
             className={`text-balance text-[30px] font-normal text-ink sm:text-[40px] lg:text-[46px] ${
               language === "zh"
@@ -29,29 +33,26 @@ export function HeroSection() {
           >
             {copy.hero.title}
           </h1>
-          <p className="mt-5 max-w-[620px] font-ui text-[21px] leading-[1.35] text-ink sm:text-[28px]">
+          <p className="mt-6 max-w-[450px] font-ui text-[21px] leading-[1.35] text-ink sm:text-[27px] sm:tracking-[-0.01em]">
             {copy.hero.tagline}
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
+          <div className="mt-10 flex flex-wrap gap-4">
             <a
               role="button"
               href="#map"
-              className="inline-flex min-h-11 items-center rounded-full bg-brand px-6 font-ui text-[17px] text-white shadow-[0_10px_28px_rgba(52,144,139,0.24)] transition hover:bg-brand-strong"
+              className="inline-flex min-h-[50px] items-center rounded-full bg-brand-strong px-6 font-ui text-[17px] font-semibold text-white shadow-[0_10px_28px_rgba(52,144,139,0.24)] transition hover:bg-brand"
             >
               {copy.hero.exploreMap}
             </a>
             <a
               role="button"
               href="#statistics"
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-brand px-6 font-ui text-[17px] text-brand transition hover:bg-brand-soft/70"
+              className="inline-flex min-h-[50px] items-center gap-2 rounded-full border border-brand px-6 font-ui text-[17px] font-semibold text-brand transition hover:bg-brand-soft/70"
             >
               {copy.hero.viewProgress}
               <ArrowDown aria-hidden size={17} />
             </a>
           </div>
-        </div>
-        <div className="flex w-full justify-center lg:justify-end">
-          <HeroVisual title={copy.hero.visualAlt} />
         </div>
       </div>
     </section>

@@ -378,9 +378,12 @@ test("51 Trip Domain types are camelCase and separated from database rows", asyn
   assert.doesNotMatch(source, /origin_latitude|planned_distance_meters/);
 });
 
-test("52 public home and map do not import Trip tables", async () => {
-  const source = `${await homePagePromise}\n${await publicMapPromise}`;
-  assert.doesNotMatch(source, /trip_plans|trip_plan_stops|trip_plan_segments|@\/lib\/trips/);
+test("52 public home reads Trips only through the curated public repository", async () => {
+  const homeSource = await homePagePromise;
+  const mapSource = await publicMapPromise;
+  assert.match(homeSource, /getPublicHomepageTrip/);
+  assert.doesNotMatch(`${homeSource}\n${mapSource}`, /trip_plans|trip_plan_stops|trip_plan_segments/);
+  assert.doesNotMatch(mapSource, /@\/lib\/trips/);
 });
 
 test("53 compatibility Migration makes max_stops nullable and defaults it to null", async () => {

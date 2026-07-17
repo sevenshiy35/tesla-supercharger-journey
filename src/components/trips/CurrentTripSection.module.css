@@ -1,0 +1,243 @@
+.timelineViewport {
+  scrollbar-color: #bedbd5 transparent;
+  scrollbar-width: thin;
+}
+
+.timeline {
+  display: grid;
+  min-width: max-content;
+}
+
+.stop {
+  position: relative;
+  min-width: 174px;
+  padding-inline: 16px;
+  text-align: center;
+}
+
+.connector {
+  position: absolute;
+  z-index: 0;
+  top: 23px;
+  left: 50%;
+  width: 100%;
+  height: 3px;
+}
+
+.connectorCompleted {
+  background: #1f6f9a;
+}
+
+.connectorCurrent,
+.connectorPlanned {
+  top: 21px;
+  height: 0;
+  border-top-width: 3px;
+  border-top-style: dashed;
+}
+
+.connectorCurrent {
+  border-color: #34908b;
+}
+
+.connectorPlanned {
+  border-color: #c9323b;
+}
+
+.marker {
+  position: relative;
+  z-index: 3;
+  display: inline-flex;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #fffdf2;
+}
+
+.markerVisited {
+  border: 2px solid #fffdf2;
+  background: #1f6f9a;
+  color: white;
+  box-shadow: 0 0 0 2px #8fc2db;
+}
+
+.markerHome {
+  border: 3px solid #fffdf2;
+  background: #34908b;
+  color: #173f3c;
+  box-shadow: 0 0 0 2px #34908b, 0 0 0 8px rgb(52 144 139 / 14%);
+}
+
+.markerCurrent {
+  border: 3px solid #34908b;
+  background: #fffdf2;
+  box-shadow: 0 0 0 8px rgb(52 144 139 / 14%);
+}
+
+.markerPlanned {
+  border: 3px solid #c9323b;
+}
+
+.mapMarker {
+  width: 22px;
+  height: 22px;
+  border: 3px solid #fffdf2;
+  border-radius: 999px;
+  box-shadow: 0 3px 12px rgb(23 63 60 / 28%);
+}
+
+.mapMarkerVisited {
+  background: #1f6f9a;
+  box-shadow: 0 0 0 2px #8fc2db, 0 3px 12px rgb(23 63 60 / 28%);
+}
+
+.mapMarkerCurrent {
+  background: #34908b;
+  box-shadow: 0 3px 12px rgb(23 63 60 / 28%);
+}
+
+.mapMarkerPlanned {
+  border-color: #c9323b;
+  background: #fffdf2;
+}
+
+.timelineCar {
+  position: absolute;
+  z-index: 6;
+  display: block;
+  width: 124px;
+  height: 64px;
+  isolation: isolate;
+  pointer-events: none;
+}
+
+.timelineCarParked {
+  top: -72px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.timelineRoad {
+  position: absolute;
+  z-index: 0;
+  right: 2px;
+  bottom: 2px;
+  left: 2px;
+  height: 10px;
+  overflow: hidden;
+  background: transparent;
+}
+
+.timelineRoadMarkings {
+  position: absolute;
+  inset: 0 -32px;
+  background: repeating-linear-gradient(90deg, #8da6a1 0 14px, transparent 14px 28px) top / 28px 2px repeat-x;
+  will-change: transform;
+}
+
+.timelineCarDriving {
+  top: -63px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.timelineCarSprite {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  display: block;
+  background: center 54% / 116px 116px no-repeat url("/images/journey-animation/car6-right-0.png");
+  filter: drop-shadow(0 4px 3px rgb(23 63 60 / 26%));
+  image-rendering: pixelated;
+}
+
+.timelineCarDriving .timelineRoadMarkings,
+.timelineCarParked .timelineRoadMarkings {
+  animation: timelineRoadFlow 560ms linear infinite;
+}
+
+.timelineCarDriving .timelineCarSprite,
+.timelineCarParked .timelineCarSprite {
+  animation:
+    timelineModelYFrames 420ms steps(1, end) infinite,
+    timelineModelYRoadBounce 840ms steps(2, end) infinite;
+}
+
+.timelineCarParked .timelineRoadMarkings {
+  animation-duration: 720ms;
+}
+
+@keyframes timelineRoadFlow {
+  to { transform: translateX(-28px); }
+}
+
+@keyframes timelineModelYFrames {
+  0%, 32% { background-image: url("/images/journey-animation/car6-right-0.png"); }
+  33%, 65% { background-image: url("/images/journey-animation/car6-right-1.png"); }
+  66%, 100% { background-image: url("/images/journey-animation/car6-right-2.png"); }
+}
+
+@keyframes timelineModelYRoadBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1px); }
+}
+
+@media (max-width: 767px) {
+  .timeline {
+    display: block;
+    min-width: 0;
+  }
+
+  .stop {
+    min-width: 0;
+    min-height: 108px;
+    padding: 0 0 28px 74px;
+    text-align: left;
+  }
+
+  .connector {
+    top: 44px;
+    left: 23px;
+    width: 3px;
+    height: calc(100% - 20px);
+  }
+
+  .connectorCurrent,
+  .connectorPlanned {
+    top: 44px;
+    left: 21px;
+    width: 0;
+    height: calc(100% - 20px);
+    border-top: 0;
+    border-left-width: 3px;
+    border-left-style: dashed;
+  }
+
+  .marker {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  .timelineCarParked {
+    top: -72px;
+    left: 24px;
+  }
+
+  .timelineCarDriving {
+    top: 50%;
+    left: 22px;
+    transform: translate(-50%, -50%) scale(0.82);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timelineCarDriving .timelineRoadMarkings,
+  .timelineCarParked .timelineRoadMarkings,
+  .timelineCarDriving .timelineCarSprite,
+  .timelineCarParked .timelineCarSprite {
+    animation: none;
+  }
+}

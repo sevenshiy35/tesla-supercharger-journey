@@ -574,6 +574,12 @@ export function SuperchargerMap({ stations, dataSource, dataError }: Supercharge
     setSelectedStation(null);
     setSelectedState(stateCode);
   };
+  const mapDescriptionLines =
+    language === "en"
+      ? copy.map.description
+          .split(". ")
+          .map((line, index, lines) => (index < lines.length - 1 ? `${line}.` : line))
+      : [copy.map.description];
 
   return (
     <section id="map" className="bg-tile px-5 py-20 font-ui text-white sm:px-8 lg:px-12">
@@ -582,8 +588,12 @@ export function SuperchargerMap({ stations, dataSource, dataError }: Supercharge
           <h2 className="text-[40px] font-semibold leading-[1.1] sm:text-[56px]">
             {copy.map.title}
           </h2>
-          <p className="mt-4 max-w-[720px] text-[21px] leading-[1.38] text-white/76">
-            {copy.map.description}
+          <p className="mt-4 max-w-[720px] text-pretty text-[18px] leading-[1.5] text-white/76 sm:text-[21px] sm:leading-[1.38]">
+            {mapDescriptionLines.map((line) => (
+              <span key={line} className="block">
+                {line}
+              </span>
+            ))}
           </p>
 
           <div className="mt-8">

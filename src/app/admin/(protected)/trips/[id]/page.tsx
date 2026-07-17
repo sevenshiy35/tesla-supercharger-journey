@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TripDraftManager } from "@/components/admin/TripDraftManager";
 import { TripNameEditor } from "@/components/admin/TripNameEditor";
+import { TripPublicationControl } from "@/components/admin/TripPublicationControl";
 import { TripRoutePlanner } from "@/components/admin/TripRoutePlanner";
 import { requireAdmin } from "@/lib/auth/admin";
 import { formatTripStatus, formatTripType, formatTripUpdatedAt } from "@/lib/trips/format";
@@ -70,6 +71,13 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
       routeInputRevision={plan.routeInputRevision}
       confirmationBlocker={confirmationBlocker}
     />
+
+    {!isDraft && plan.status !== "archived" ? (
+      <TripPublicationControl
+        tripPlanId={plan.id}
+        initialShowOnHomepage={plan.showOnHomepage}
+      />
+    ) : null}
 
     <TripRoutePlanner key={plan.routeInputRevision} plan={plannerPlan} persistedSegments={segments} initialSuggestedStops={suggestedStops} />
   </main>;

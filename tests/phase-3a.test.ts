@@ -339,12 +339,11 @@ test("86 a pending photo View degrades Latest Check-ins to placeholders", async 
   assert.match(source, /photoError\?\.code === "PGRST205" \|\| photoError\?\.code === "42P01"/);
   assert.match(source, /if \(!photoError\) \{[\s\S]+photosByVisit\.set/);
 });
-test("87 an optional Latest Check-ins failure cannot clear loaded stations", async () => {
+test("87 an optional public Trip failure cannot clear loaded stations", async () => {
   const source = await homePagePromise;
   const stationsIndex = source.indexOf("getAllStations()");
-  const latestTryIndex = source.indexOf("try {", stationsIndex);
-  const latestIndex = source.indexOf("getLatestCheckIns(6)");
-  const dataErrorIndex = source.indexOf("dataError = toStationDataError", latestIndex);
-  assert.ok(stationsIndex >= 0 && latestTryIndex > stationsIndex && latestIndex > latestTryIndex);
-  assert.match(source.slice(latestTryIndex, dataErrorIndex), /catch \{[\s\S]+latestCheckIns = \[\]/);
+  const tripTryIndex = source.indexOf("try {", source.indexOf("dataError = toStationDataError"));
+  const tripIndex = source.indexOf("getPublicHomepageTrip()", tripTryIndex);
+  assert.ok(stationsIndex >= 0 && tripTryIndex > stationsIndex && tripIndex > tripTryIndex);
+  assert.match(source.slice(tripTryIndex), /catch \{[\s\S]+homepageTrip = null/);
 });

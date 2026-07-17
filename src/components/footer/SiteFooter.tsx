@@ -1,5 +1,6 @@
 "use client";
 
+import type { Route } from "next";
 import Link from "next/link";
 import { useLanguage } from "@/i18n/LanguageProvider";
 import { interpolateText } from "@/i18n/translations";
@@ -35,6 +36,9 @@ export function SiteFooter({ lastUpdated, dataSource }: SiteFooterProps) {
             <span>{sourceLabel}</span>
             <Link href="/privacy" className="text-action-blue">
               {copy.footer.privacy}
+            </Link>
+            <Link href={"/photos" as Route} className="text-action-blue">
+              {copy.footer.photos}
             </Link>
             <Link href="/admin" className="text-ink-muted">
               {copy.footer.admin}

@@ -109,7 +109,11 @@ export function CinematicJourneyGallery({
     if (!section) return;
 
     const observer = new IntersectionObserver(
-      ([entry]) => setIsInView(entry.isIntersecting && entry.intersectionRatio >= 0.2),
+      (entries) => {
+        const entry = entries?.[0];
+        if (!entry) return;
+        setIsInView(entry.isIntersecting && entry.intersectionRatio >= 0.2);
+      },
       { threshold: [0, 0.2, 0.5] },
     );
     observer.observe(section);
@@ -118,6 +122,7 @@ export function CinematicJourneyGallery({
 
   useEffect(() => {
     const nextScene = cinematicJourneyScenes[(activeIndex + 1) % cinematicJourneyScenes.length];
+    if (!nextScene) return;
     const image = new window.Image();
     image.src = nextScene.backgroundImage;
   }, [activeIndex]);
@@ -151,7 +156,6 @@ export function CinematicJourneyGallery({
           <p>{sectionCopy.eyebrow}</p>
           <h2 id="cinematic-journey-title">{sectionCopy.title}</h2>
         </div>
-        <span>{sectionCopy.subtitle}</span>
       </header>
 
       <div className={styles.stage}>

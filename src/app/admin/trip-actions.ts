@@ -55,6 +55,11 @@ export interface TripPlanConfirmationState extends TripPlanMutationState {
   confirmedAt?: string;
 }
 
+export interface TripPublicationState extends TripPlanMutationState {
+  isPublic?: boolean;
+  showOnHomepage?: boolean;
+}
+
 export interface TripRouteBasicsMutationState extends TripPlanMutationState {
   routeInputRevision?: number;
   changed?: boolean;
@@ -91,6 +96,9 @@ export interface TripStopSearchState {
 }
 
 function safeTripMutationError(message: string, fallback: string) {
+  if (/schema cache|could not find the function|admin_set_trip_publication/i.test(message)) {
+    return "Trip publishing is not installed yet. Apply the latest database migration and try again.";
+  }
   if (/only draft/i.test(message)) return "Only Draft Trip Plans can be changed this way.";
   if (/trip name.*required/i.test(message)) return "Add a Trip name before confirming.";
   if (/planned route.*not ready|route.*not ready.*confirmation/i.test(message)) return "Finish and review the current route before confirming.";
@@ -110,6 +118,37 @@ function refreshTripPaths(tripPlanId?: string) {
   revalidatePath("/admin");
   revalidatePath("/admin/trips");
   if (tripPlanId) revalidatePath(`/admin/trips/${tripPlanId}`);
+}
+
+export async function setTripPublicationAction(
+  tripPlanId: string,
+  showOnHomepage: boolean,
+): Promise<TripPublicationState> {
+  await requireAdmin();
+  const idValidation = tripPlanIdSchema.safeParse(tripPlanId);
+  if (!idValidation.success) return { ok: false, error: idValidation.error.issues[0]?.message };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_set_trip_publication", {
+    p_trip_plan_id: idValidation.data,
+    p_is_public: showOnHomepage,
+    p_show_on_homepage: showOnHomepage,
+  });
+  if (error || !data?.[0]) {
+    return {
+      ok: false,
+      error: safeTripMutationError(error?.message ?? "", "The Trip publication setting could not be saved."),
+    };
+  }
+
+  refreshTripPaths(tripPlanId);
+  revalidatePath("/");
+  return {
+    ok: true,
+    tripPlanId,
+    isPublic: data[0].is_public,
+    showOnHomepage: data[0].show_on_homepage,
+  };
 }
 
 export async function renameTripPlanAction(
