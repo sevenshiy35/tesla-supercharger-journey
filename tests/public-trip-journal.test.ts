@@ -117,6 +117,14 @@ test("timeline starts at private Home and owns the white side-view Model Y progr
   assert.doesNotMatch(source, /timelineSpeedLines/);
   assert.match(styles, /prefers-reduced-motion[\s\S]+\.timelineCarParked \.timelineRoadMarkings/);
   assert.doesNotMatch(styles, /animation: timelineCarDrive/);
+  assert.match(styles, /--mobile-timeline-rail: 62px/);
+  assert.match(styles, /\.timelineCarParked\s*\{[\s\S]+left: var\(--mobile-timeline-rail\)/);
+});
+
+test("public Trip map markers scale down with the mobile route map", async () => {
+  const styles = await currentTripStylesPromise;
+  assert.match(styles, /\.mapMarker\s*\{[\s\S]+width: clamp\(16px, 4vw, 22px\);[\s\S]+height: clamp\(16px, 4vw, 22px\);/);
+  assert.match(styles, /@media \(max-width: 767px\)[\s\S]+\.mapMarker\s*\{[\s\S]+border-width: 2px;/);
 });
 
 test("the final Check-in completes the Trip without unpublishing it", async () => {

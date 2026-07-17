@@ -81,8 +81,8 @@
 }
 
 .mapMarker {
-  width: 22px;
-  height: 22px;
+  width: clamp(16px, 4vw, 22px);
+  height: clamp(16px, 4vw, 22px);
   border: 3px solid #fffdf2;
   border-radius: 999px;
   box-shadow: 0 3px 12px rgb(23 63 60 / 28%);
@@ -185,7 +185,13 @@
 }
 
 @media (max-width: 767px) {
+  .mapMarker {
+    border-width: 2px;
+  }
+
   .timeline {
+    --mobile-timeline-rail: 62px;
+
     display: block;
     min-width: 0;
   }
@@ -193,13 +199,13 @@
   .stop {
     min-width: 0;
     min-height: 108px;
-    padding: 0 0 28px 74px;
+    padding: 0 0 28px calc(var(--mobile-timeline-rail) + 50px);
     text-align: left;
   }
 
   .connector {
     top: 44px;
-    left: 23px;
+    left: calc(var(--mobile-timeline-rail) - 1.5px);
     width: 3px;
     height: calc(100% - 20px);
   }
@@ -207,7 +213,7 @@
   .connectorCurrent,
   .connectorPlanned {
     top: 44px;
-    left: 21px;
+    left: calc(var(--mobile-timeline-rail) - 1.5px);
     width: 0;
     height: calc(100% - 20px);
     border-top: 0;
@@ -218,17 +224,17 @@
   .marker {
     position: absolute;
     top: 0;
-    left: 0;
+    left: calc(var(--mobile-timeline-rail) - 24px);
   }
 
   .timelineCarParked {
     top: -72px;
-    left: 24px;
+    left: var(--mobile-timeline-rail);
   }
 
   .timelineCarDriving {
     top: 50%;
-    left: 22px;
+    left: var(--mobile-timeline-rail);
     transform: translate(-50%, -50%) scale(0.82);
   }
 }

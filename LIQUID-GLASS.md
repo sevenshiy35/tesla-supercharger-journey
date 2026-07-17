@@ -20,6 +20,7 @@ The material is a functional floating layer, not a page background. Dense metric
   variant="elevated"
   environment="warm"
   radius="pill"
+  optics="cinematic"
   busyBackground
   trackPointer
 >
@@ -36,6 +37,8 @@ Variants:
 - `dark`: a high-contrast dark material for deep teal or night environments.
 
 Environment values are `neutral`, `warm`, and `teal`. They provide both light and dark tint pairs, so the dark variant still adapts to its surroundings. Radius values are `panel`, `compact`, and `pill`.
+
+Optics values are `standard` and `cinematic`. `cinematic` concentrates the pointer sheen, strengthens the directional rim, and adds a restrained warm-to-cool edge glow without introducing another filter layer. The Hero uses these optics without `busyBackground`, allowing more of the road image to remain visible while retaining an elevated warm tint.
 
 `busyBackground` raises the material opacity to the centralized busy-scene values. Use it when a surface crosses photography, maps, or high-frequency illustration. `reducedTransparency` forces the solid fallback on one instance. The global `liquid-glass-reduced-transparency` class can be placed on a surface or ancestor to disable transparency for a subtree. The component also honors the `prefers-reduced-transparency` media query where the browser exposes it.
 

@@ -11,7 +11,7 @@ export function HeroSection() {
   return (
     <section
       id="journey"
-      className="relative flex min-h-screen items-center overflow-hidden bg-canvas px-5 pb-14 pt-24 sm:px-8 lg:px-12"
+      className="relative flex min-h-[100svh] items-center overflow-hidden bg-canvas px-5 pb-14 pt-24 sm:px-8 lg:px-12"
     >
       <Image
         src="/images/hero/model-y-desert-road.png"
@@ -27,7 +27,7 @@ export function HeroSection() {
           variant="elevated"
           environment="warm"
           radius="panel"
-          busyBackground
+          optics="cinematic"
           trackPointer
           className="w-full max-w-[544px] lg:translate-y-5"
           contentClassName="p-6 sm:min-h-[370px] sm:px-[46px] sm:py-[42px]"

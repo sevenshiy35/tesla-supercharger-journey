@@ -40,6 +40,14 @@
   --liquid-glass-pointer-highlight: rgb(255 255 255 / 0.2);
   --liquid-glass-pointer-highlight-dark: rgb(174 246 232 / 0.11);
   --liquid-glass-pointer-highlight-size: 42%;
+  --liquid-glass-pointer-highlight-cinematic: rgb(255 255 255 / 0.34);
+  --liquid-glass-pointer-highlight-size-cinematic: 30%;
+  --liquid-glass-border-highlight-cinematic-leading: rgb(255 250 235 / 0.98);
+  --liquid-glass-border-highlight-cinematic-middle: rgb(255 203 153 / 0.42);
+  --liquid-glass-border-highlight-cinematic-trailing: rgb(165 233 221 / 0.34);
+  --liquid-glass-edge-glow-warm: rgb(255 198 139 / 0.12);
+  --liquid-glass-edge-glow-cool: rgb(127 218 207 / 0.09);
+  --liquid-glass-edge-glow-clear: transparent;
   --liquid-glass-highlight-angle: 138deg;
 
   /* Continuous-corner scale */

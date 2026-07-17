@@ -6,7 +6,13 @@
   --liquid-glass-active-leading-opacity: var(--liquid-glass-opacity-regular-leading);
   --liquid-glass-active-trailing-opacity: var(--liquid-glass-opacity-regular-trailing);
   --liquid-glass-active-border: var(--liquid-glass-border);
+  --liquid-glass-active-border-highlight-leading: var(--liquid-glass-border-highlight-leading);
+  --liquid-glass-active-border-highlight-middle: var(--liquid-glass-border-highlight-middle);
+  --liquid-glass-active-border-highlight-trailing: var(--liquid-glass-border-highlight-trailing);
   --liquid-glass-active-pointer-highlight: var(--liquid-glass-pointer-highlight);
+  --liquid-glass-active-pointer-highlight-size: var(--liquid-glass-pointer-highlight-size);
+  --liquid-glass-active-edge-glow-leading: var(--liquid-glass-edge-glow-clear);
+  --liquid-glass-active-edge-glow-trailing: var(--liquid-glass-edge-glow-clear);
   --liquid-glass-active-radius: var(--liquid-glass-radius-panel);
   --liquid-glass-active-shadow: var(--liquid-glass-shadow-regular);
   --liquid-glass-active-inner-shadow: var(--liquid-glass-inner-shadow);
@@ -18,11 +24,19 @@
   isolation: isolate;
   border: var(--liquid-glass-border-width) solid var(--liquid-glass-active-border);
   border-radius: var(--liquid-glass-active-radius);
-  background: linear-gradient(
-    var(--liquid-glass-highlight-angle),
-    rgb(var(--liquid-glass-active-tint) / var(--liquid-glass-active-leading-opacity)),
-    rgb(var(--liquid-glass-active-tint) / var(--liquid-glass-active-trailing-opacity))
-  );
+  background:
+    linear-gradient(
+      var(--liquid-glass-highlight-angle),
+      var(--liquid-glass-active-edge-glow-leading),
+      transparent 28%,
+      transparent 72%,
+      var(--liquid-glass-active-edge-glow-trailing)
+    ),
+    linear-gradient(
+      var(--liquid-glass-highlight-angle),
+      rgb(var(--liquid-glass-active-tint) / var(--liquid-glass-active-leading-opacity)),
+      rgb(var(--liquid-glass-active-tint) / var(--liquid-glass-active-trailing-opacity))
+    );
   box-shadow: var(--liquid-glass-active-shadow), var(--liquid-glass-active-inner-shadow);
   -webkit-backdrop-filter: blur(var(--liquid-glass-active-blur))
     saturate(var(--liquid-glass-active-saturation));
@@ -48,9 +62,9 @@
   padding: var(--liquid-glass-border-width);
   background: linear-gradient(
     var(--liquid-glass-highlight-angle),
-    var(--liquid-glass-border-highlight-leading),
-    var(--liquid-glass-border-highlight-middle) 42%,
-    var(--liquid-glass-border-highlight-trailing) 76%
+    var(--liquid-glass-active-border-highlight-leading),
+    var(--liquid-glass-active-border-highlight-middle) 42%,
+    var(--liquid-glass-active-border-highlight-trailing) 76%
   );
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
@@ -64,7 +78,7 @@
   background: radial-gradient(
     circle at var(--liquid-glass-pointer-x) var(--liquid-glass-pointer-y),
     var(--liquid-glass-active-pointer-highlight),
-    transparent var(--liquid-glass-pointer-highlight-size)
+    transparent var(--liquid-glass-active-pointer-highlight-size)
   );
   opacity: 0;
   transition: opacity var(--liquid-glass-motion-duration) var(--liquid-glass-motion-easing);
@@ -163,6 +177,24 @@
 
 .radiusPill {
   --liquid-glass-active-radius: var(--liquid-glass-radius-pill);
+}
+
+.opticsCinematic {
+  --liquid-glass-active-border-highlight-leading: var(
+    --liquid-glass-border-highlight-cinematic-leading
+  );
+  --liquid-glass-active-border-highlight-middle: var(
+    --liquid-glass-border-highlight-cinematic-middle
+  );
+  --liquid-glass-active-border-highlight-trailing: var(
+    --liquid-glass-border-highlight-cinematic-trailing
+  );
+  --liquid-glass-active-pointer-highlight: var(--liquid-glass-pointer-highlight-cinematic);
+  --liquid-glass-active-pointer-highlight-size: var(
+    --liquid-glass-pointer-highlight-size-cinematic
+  );
+  --liquid-glass-active-edge-glow-leading: var(--liquid-glass-edge-glow-warm);
+  --liquid-glass-active-edge-glow-trailing: var(--liquid-glass-edge-glow-cool);
 }
 
 .pointerTracked:hover::after,

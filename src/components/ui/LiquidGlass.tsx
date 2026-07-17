@@ -13,11 +13,13 @@ import styles from "./LiquidGlass.module.css";
 export type LiquidGlassVariant = "regular" | "clear" | "elevated" | "interactive" | "dark";
 export type LiquidGlassEnvironment = "neutral" | "warm" | "teal";
 export type LiquidGlassRadius = "panel" | "compact" | "pill";
+export type LiquidGlassOptics = "standard" | "cinematic";
 
 interface LiquidGlassOwnProps {
   variant?: LiquidGlassVariant;
   environment?: LiquidGlassEnvironment;
   radius?: LiquidGlassRadius;
+  optics?: LiquidGlassOptics;
   busyBackground?: boolean;
   reducedTransparency?: boolean;
   trackPointer?: boolean;
@@ -54,6 +56,11 @@ const radiusClasses: Record<LiquidGlassRadius, string> = {
   pill: styles.radiusPill,
 };
 
+const opticsClasses: Record<LiquidGlassOptics, string | undefined> = {
+  standard: undefined,
+  cinematic: styles.opticsCinematic,
+};
+
 function cx(...classNames: Array<string | false | undefined>) {
   return classNames.filter(Boolean).join(" ");
 }
@@ -63,6 +70,7 @@ export function LiquidGlass<T extends ElementType = "div">({
   variant = "regular",
   environment = "neutral",
   radius = "panel",
+  optics = "standard",
   busyBackground = false,
   reducedTransparency = false,
   trackPointer,
@@ -136,12 +144,14 @@ export function LiquidGlass<T extends ElementType = "div">({
         variantClasses[variant],
         environmentClasses[environment],
         radiusClasses[radius],
+        opticsClasses[optics],
         shouldTrackPointer && styles.pointerTracked,
         busyBackground && styles.busyBackground,
         reducedTransparency && styles.reducedTransparency,
         className,
       )}
       data-liquid-glass={variant}
+      data-liquid-glass-optics={optics}
       data-busy-background={busyBackground || undefined}
       data-reduced-transparency={reducedTransparency || undefined}
       style={style}
