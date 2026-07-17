@@ -7,6 +7,7 @@ import { getLocalizedStateName } from "@/i18n/state-names";
 import { interpolateText } from "@/i18n/translations";
 import { formatDisplayDate, getJourneySummary, getStateSummary } from "@/lib/journey/calculations";
 import type { SuperchargerStation } from "@/types/station";
+import { LiquidGlass } from "@/components/ui/LiquidGlass";
 
 interface ProgressStatsProps {
   stations: SuperchargerStation[];
@@ -46,10 +47,19 @@ export function ProgressStats({ stations, selectedState }: ProgressStatsProps) {
       ];
 
   return (
-    <aside id="statistics" className="border border-[#a5e9dd]/24 bg-[#a5e9dd]/10 p-5 font-ui text-white sm:p-6">
+    <LiquidGlass
+      as="aside"
+      id="statistics"
+      variant="dark"
+      environment="teal"
+      radius="panel"
+      trackPointer
+      className="scroll-mt-24 font-ui text-white"
+      contentClassName="p-5 sm:p-6"
+    >
       <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
         <div>
-          <p className="text-[14px] text-white/66">{copy.progress.eyebrow}</p>
+          <p className="text-[14px] font-medium text-white/78">{copy.progress.eyebrow}</p>
           <h3 className="mt-2 text-[32px] font-semibold leading-[1.1]">
             {stateSummary
               ? getLocalizedStateName(stateSummary.stateCode, language)
@@ -61,10 +71,10 @@ export function ProgressStats({ stations, selectedState }: ProgressStatsProps) {
             {activeSummary.visitedStations.toLocaleString(locale)} /{" "}
             {activeSummary.totalStations.toLocaleString(locale)}
           </div>
-          <p className="mt-3 text-[17px] text-white/72">{completeLabel}</p>
+          <p className="mt-3 text-[17px] text-white/82">{completeLabel}</p>
         </div>
       </div>
-      <dl className="mt-7 grid gap-px overflow-hidden rounded-[18px] border border-[#a5e9dd]/22 bg-[#a5e9dd]/22 sm:grid-cols-2 lg:grid-cols-3">
+      <dl className="mt-7 grid gap-px overflow-hidden rounded-[18px] border border-white/14 bg-white/14 sm:grid-cols-2 lg:grid-cols-3">
         {rows.map((row) => {
           const Icon = row.icon;
 
@@ -72,13 +82,13 @@ export function ProgressStats({ stations, selectedState }: ProgressStatsProps) {
             <div key={row.label} className="grid min-h-[88px] grid-cols-[28px_1fr] gap-3 bg-tile-2 px-4 py-4">
               <Icon aria-hidden className="mt-0.5 text-action-blue-dark" size={18} />
               <div>
-                <dt className="text-[13px] leading-[1.35] text-white/58">{row.label}</dt>
+                <dt className="text-[13px] font-medium leading-[1.35] text-white/74">{row.label}</dt>
                 <dd className="mt-1 font-data text-[17px] leading-[1.35] text-white">{row.value}</dd>
               </div>
             </div>
           );
         })}
       </dl>
-    </aside>
+    </LiquidGlass>
   );
 }

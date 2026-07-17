@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { ArrowDown } from "lucide-react";
+import { LiquidGlass } from "@/components/ui/LiquidGlass";
 import { useLanguage } from "@/i18n/LanguageProvider";
 
 export function HeroSection() {
@@ -22,7 +23,15 @@ export function HeroSection() {
       />
       <div aria-hidden className="absolute inset-0 bg-[#fff8ed]/[0.04]" />
       <div className="relative z-10 mx-auto w-full max-w-[1344px]">
-        <div className="w-full max-w-[544px] rounded-[36px] border border-white/65 bg-[#fff8ed]/95 p-6 shadow-[0_24px_70px_rgba(42,31,24,0.18)] backdrop-blur-xl sm:min-h-[370px] sm:px-[46px] sm:py-[42px] lg:translate-y-5">
+        <LiquidGlass
+          variant="elevated"
+          environment="warm"
+          radius="panel"
+          busyBackground
+          trackPointer
+          className="w-full max-w-[544px] lg:translate-y-5"
+          contentClassName="p-6 sm:min-h-[370px] sm:px-[46px] sm:py-[42px]"
+        >
           <p className="mb-6 font-ui text-[17px] font-semibold text-ink">{copy.hero.eyebrow}</p>
           <h1
             className={`text-balance text-[30px] font-normal text-ink sm:text-[40px] lg:text-[46px] ${
@@ -53,7 +62,7 @@ export function HeroSection() {
               <ArrowDown aria-hidden size={17} />
             </a>
           </div>
-        </div>
+        </LiquidGlass>
       </div>
     </section>
   );

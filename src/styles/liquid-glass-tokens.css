@@ -1,0 +1,73 @@
+:root {
+  /* Material optics */
+  --liquid-glass-blur-regular: 22px;
+  --liquid-glass-blur-elevated: 28px;
+  --liquid-glass-blur-mobile: 14px;
+  --liquid-glass-saturation: 155%;
+  --liquid-glass-saturation-mobile: 135%;
+
+  /* Environment tints */
+  --liquid-glass-tint-neutral: 248 249 247;
+  --liquid-glass-tint-neutral-dark: 28 39 39;
+  --liquid-glass-tint-warm: 255 247 229;
+  --liquid-glass-tint-warm-dark: 54 43 34;
+  --liquid-glass-tint-teal: 207 239 232;
+  --liquid-glass-tint-teal-dark: 19 67 62;
+
+  /* Variant opacity */
+  --liquid-glass-opacity-regular-leading: 0.7;
+  --liquid-glass-opacity-regular-trailing: 0.48;
+  --liquid-glass-opacity-clear-leading: 0.46;
+  --liquid-glass-opacity-clear-trailing: 0.24;
+  --liquid-glass-opacity-elevated-leading: 0.82;
+  --liquid-glass-opacity-elevated-trailing: 0.62;
+  --liquid-glass-opacity-interactive-leading: 0.64;
+  --liquid-glass-opacity-interactive-trailing: 0.42;
+  --liquid-glass-opacity-dark-leading: 0.86;
+  --liquid-glass-opacity-dark-trailing: 0.66;
+  --liquid-glass-opacity-busy-leading: 0.91;
+  --liquid-glass-opacity-busy-trailing: 0.78;
+
+  /* Border and highlights */
+  --liquid-glass-border-width: 1px;
+  --liquid-glass-border: rgb(255 255 255 / 0.34);
+  --liquid-glass-border-dark: rgb(200 244 235 / 0.2);
+  --liquid-glass-border-highlight-leading: rgb(255 255 255 / 0.88);
+  --liquid-glass-border-highlight-middle: rgb(255 255 255 / 0.24);
+  --liquid-glass-border-highlight-trailing: rgb(255 255 255 / 0.08);
+  --liquid-glass-inner-highlight: rgb(255 255 255 / 0.42);
+  --liquid-glass-inner-highlight-dark: rgb(217 255 247 / 0.16);
+  --liquid-glass-pointer-highlight: rgb(255 255 255 / 0.2);
+  --liquid-glass-pointer-highlight-dark: rgb(174 246 232 / 0.11);
+  --liquid-glass-pointer-highlight-size: 42%;
+  --liquid-glass-highlight-angle: 138deg;
+
+  /* Continuous-corner scale */
+  --liquid-glass-radius-panel: 30px;
+  --liquid-glass-radius-compact: 20px;
+  --liquid-glass-radius-pill: 999px;
+
+  /* Elevation */
+  --liquid-glass-shadow-regular: 0 14px 38px rgb(23 63 60 / 0.12);
+  --liquid-glass-shadow-elevated: 0 20px 58px rgb(23 63 60 / 0.18);
+  --liquid-glass-shadow-interactive: 0 12px 30px rgb(23 63 60 / 0.14);
+  --liquid-glass-shadow-interactive-pressed: 0 7px 18px rgb(23 63 60 / 0.13);
+  --liquid-glass-shadow-dark: 0 22px 62px rgb(4 22 21 / 0.24);
+  --liquid-glass-inner-shadow: inset 0 1px 0 var(--liquid-glass-inner-highlight);
+  --liquid-glass-inner-shadow-dark: inset 0 1px 0 var(--liquid-glass-inner-highlight-dark);
+
+  /* Fallbacks */
+  --liquid-glass-fallback-neutral: rgb(250 250 246 / 0.98);
+  --liquid-glass-fallback-warm: rgb(255 250 238 / 0.98);
+  --liquid-glass-fallback-teal: rgb(227 244 238 / 0.98);
+  --liquid-glass-fallback-neutral-dark: rgb(28 39 39 / 0.98);
+  --liquid-glass-fallback-warm-dark: rgb(54 43 34 / 0.98);
+  --liquid-glass-fallback-teal-dark: rgb(19 67 62 / 0.98);
+
+  /* Motion */
+  --liquid-glass-motion-duration: 220ms;
+  --liquid-glass-motion-duration-fast: 150ms;
+  --liquid-glass-motion-easing: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --liquid-glass-press-scale: 0.985;
+  --liquid-glass-focus-ring: 0 0 0 3px rgb(52 144 139 / 0.34);
+}

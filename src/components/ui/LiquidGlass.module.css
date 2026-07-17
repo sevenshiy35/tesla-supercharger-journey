@@ -1,0 +1,236 @@
+.surface {
+  --liquid-glass-active-blur: var(--liquid-glass-blur-regular);
+  --liquid-glass-active-saturation: var(--liquid-glass-saturation);
+  --liquid-glass-active-tint: var(--liquid-glass-tint-neutral);
+  --liquid-glass-active-dark-tint: var(--liquid-glass-tint-neutral-dark);
+  --liquid-glass-active-leading-opacity: var(--liquid-glass-opacity-regular-leading);
+  --liquid-glass-active-trailing-opacity: var(--liquid-glass-opacity-regular-trailing);
+  --liquid-glass-active-border: var(--liquid-glass-border);
+  --liquid-glass-active-pointer-highlight: var(--liquid-glass-pointer-highlight);
+  --liquid-glass-active-radius: var(--liquid-glass-radius-panel);
+  --liquid-glass-active-shadow: var(--liquid-glass-shadow-regular);
+  --liquid-glass-active-inner-shadow: var(--liquid-glass-inner-shadow);
+  --liquid-glass-active-fallback: var(--liquid-glass-fallback-neutral);
+  --liquid-glass-pointer-x: 18%;
+  --liquid-glass-pointer-y: 0%;
+
+  position: relative;
+  isolation: isolate;
+  border: var(--liquid-glass-border-width) solid var(--liquid-glass-active-border);
+  border-radius: var(--liquid-glass-active-radius);
+  background: linear-gradient(
+    var(--liquid-glass-highlight-angle),
+    rgb(var(--liquid-glass-active-tint) / var(--liquid-glass-active-leading-opacity)),
+    rgb(var(--liquid-glass-active-tint) / var(--liquid-glass-active-trailing-opacity))
+  );
+  box-shadow: var(--liquid-glass-active-shadow), var(--liquid-glass-active-inner-shadow);
+  -webkit-backdrop-filter: blur(var(--liquid-glass-active-blur))
+    saturate(var(--liquid-glass-active-saturation));
+  backdrop-filter: blur(var(--liquid-glass-active-blur))
+    saturate(var(--liquid-glass-active-saturation));
+  transition:
+    box-shadow var(--liquid-glass-motion-duration) var(--liquid-glass-motion-easing),
+    opacity var(--liquid-glass-motion-duration) var(--liquid-glass-motion-easing),
+    transform var(--liquid-glass-motion-duration-fast) var(--liquid-glass-motion-easing);
+}
+
+.surface::before,
+.surface::after {
+  position: absolute;
+  inset: calc(-1 * var(--liquid-glass-border-width));
+  border-radius: inherit;
+  pointer-events: none;
+  content: "";
+}
+
+.surface::before {
+  z-index: 0;
+  padding: var(--liquid-glass-border-width);
+  background: linear-gradient(
+    var(--liquid-glass-highlight-angle),
+    var(--liquid-glass-border-highlight-leading),
+    var(--liquid-glass-border-highlight-middle) 42%,
+    var(--liquid-glass-border-highlight-trailing) 76%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+.surface::after {
+  z-index: 0;
+  background: radial-gradient(
+    circle at var(--liquid-glass-pointer-x) var(--liquid-glass-pointer-y),
+    var(--liquid-glass-active-pointer-highlight),
+    transparent var(--liquid-glass-pointer-highlight-size)
+  );
+  opacity: 0;
+  transition: opacity var(--liquid-glass-motion-duration) var(--liquid-glass-motion-easing);
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.environmentWarm {
+  --liquid-glass-active-tint: var(--liquid-glass-tint-warm);
+  --liquid-glass-active-dark-tint: var(--liquid-glass-tint-warm-dark);
+  --liquid-glass-active-fallback: var(--liquid-glass-fallback-warm);
+  --liquid-glass-active-dark-fallback: var(--liquid-glass-fallback-warm-dark);
+}
+
+.environmentTeal {
+  --liquid-glass-active-tint: var(--liquid-glass-tint-teal);
+  --liquid-glass-active-dark-tint: var(--liquid-glass-tint-teal-dark);
+  --liquid-glass-active-fallback: var(--liquid-glass-fallback-teal);
+  --liquid-glass-active-dark-fallback: var(--liquid-glass-fallback-teal-dark);
+}
+
+.environmentNeutral {
+  --liquid-glass-active-tint: var(--liquid-glass-tint-neutral);
+  --liquid-glass-active-dark-tint: var(--liquid-glass-tint-neutral-dark);
+  --liquid-glass-active-fallback: var(--liquid-glass-fallback-neutral);
+  --liquid-glass-active-dark-fallback: var(--liquid-glass-fallback-neutral-dark);
+}
+
+.regular {
+  --liquid-glass-active-leading-opacity: var(--liquid-glass-opacity-regular-leading);
+  --liquid-glass-active-trailing-opacity: var(--liquid-glass-opacity-regular-trailing);
+  --liquid-glass-active-shadow: var(--liquid-glass-shadow-regular);
+}
+
+.clear {
+  --liquid-glass-active-leading-opacity: var(--liquid-glass-opacity-clear-leading);
+  --liquid-glass-active-trailing-opacity: var(--liquid-glass-opacity-clear-trailing);
+  --liquid-glass-active-shadow: var(--liquid-glass-shadow-regular);
+}
+
+.elevated {
+  --liquid-glass-active-blur: var(--liquid-glass-blur-elevated);
+  --liquid-glass-active-leading-opacity: var(--liquid-glass-opacity-elevated-leading);
+  --liquid-glass-active-trailing-opacity: var(--liquid-glass-opacity-elevated-trailing);
+  --liquid-glass-active-shadow: var(--liquid-glass-shadow-elevated);
+}
+
+.interactive {
+  --liquid-glass-active-leading-opacity: var(--liquid-glass-opacity-interactive-leading);
+  --liquid-glass-active-trailing-opacity: var(--liquid-glass-opacity-interactive-trailing);
+  --liquid-glass-active-shadow: var(--liquid-glass-shadow-interactive);
+
+  touch-action: manipulation;
+  will-change: transform;
+}
+
+.interactive:active {
+  --liquid-glass-active-shadow: var(--liquid-glass-shadow-interactive-pressed);
+
+  transform: scale(var(--liquid-glass-press-scale));
+}
+
+.interactive:focus-visible {
+  outline: none;
+  box-shadow:
+    var(--liquid-glass-active-shadow),
+    var(--liquid-glass-active-inner-shadow),
+    var(--liquid-glass-focus-ring);
+}
+
+.dark {
+  --liquid-glass-active-tint: var(--liquid-glass-active-dark-tint);
+  --liquid-glass-active-leading-opacity: var(--liquid-glass-opacity-dark-leading);
+  --liquid-glass-active-trailing-opacity: var(--liquid-glass-opacity-dark-trailing);
+  --liquid-glass-active-border: var(--liquid-glass-border-dark);
+  --liquid-glass-active-pointer-highlight: var(--liquid-glass-pointer-highlight-dark);
+  --liquid-glass-active-shadow: var(--liquid-glass-shadow-dark);
+  --liquid-glass-active-inner-shadow: var(--liquid-glass-inner-shadow-dark);
+  --liquid-glass-active-fallback: var(
+    --liquid-glass-active-dark-fallback,
+    var(--liquid-glass-fallback-neutral-dark)
+  );
+}
+
+.radiusPanel {
+  --liquid-glass-active-radius: var(--liquid-glass-radius-panel);
+}
+
+.radiusCompact {
+  --liquid-glass-active-radius: var(--liquid-glass-radius-compact);
+}
+
+.radiusPill {
+  --liquid-glass-active-radius: var(--liquid-glass-radius-pill);
+}
+
+.pointerTracked:hover::after,
+.pointerTracked:focus-within::after {
+  opacity: 1;
+}
+
+.busyBackground {
+  --liquid-glass-active-leading-opacity: var(--liquid-glass-opacity-busy-leading);
+  --liquid-glass-active-trailing-opacity: var(--liquid-glass-opacity-busy-trailing);
+}
+
+.reducedTransparency,
+.surface:global(.liquid-glass-reduced-transparency),
+:global(.liquid-glass-reduced-transparency) .surface {
+  background: var(--liquid-glass-active-fallback);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+@supports (corner-shape: squircle) {
+  .surface,
+  .surface::before,
+  .surface::after {
+    corner-shape: squircle;
+  }
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .surface {
+    background: var(--liquid-glass-active-fallback);
+  }
+
+  .surface::after {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .surface {
+    --liquid-glass-active-blur: var(--liquid-glass-blur-mobile);
+    --liquid-glass-active-saturation: var(--liquid-glass-saturation-mobile);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .surface {
+    background: var(--liquid-glass-active-fallback);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .surface::after {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .surface,
+  .surface::after {
+    transition: none;
+  }
+
+  .surface::after {
+    display: none;
+  }
+
+  .interactive:active {
+    transform: none;
+  }
+}
