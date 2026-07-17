@@ -40,7 +40,7 @@ export const cinematicJourneyCopy = {
   en: {
     eyebrow: "A 2026 Supercharger travel journal",
     title: "A road trip told in light.",
-    introTitle: "One station. One photo. One story.",
+    introTitle: "One station. One photo.\nOne story.",
     sceneNavigation: "Travel scenes",
     sceneLabel: "Travel illustration",
     showScene: (title: string) => `Show ${title} scene`,

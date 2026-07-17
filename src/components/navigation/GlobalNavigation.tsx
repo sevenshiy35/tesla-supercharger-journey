@@ -59,17 +59,16 @@ export function GlobalNavigation() {
         <Link
           href="/"
           className="flex min-w-0 items-center gap-2 text-[15px] font-black uppercase"
-          aria-label="MyTesla2026Journey home"
+          aria-label="Journey2026 home"
         >
-          <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/20 bg-ink/95 text-[15px] text-white shadow-sm">
+          <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border border-white/20 bg-ink/95 text-[15px] text-white shadow-sm">
             7
           </span>
           <span className="hidden sm:inline-flex">
-            <span className="text-ink">My</span>
-            <span className="text-brand">Tesla</span>
+            <span className="text-ink">Journey</span>
             <span className="text-accent-warm">2026</span>
           </span>
-          <span className="sm:hidden">MT26</span>
+          <span className="sm:hidden">J26</span>
         </Link>
 
         <div className="absolute left-1/2 hidden w-[480px] -translate-x-1/2 grid-cols-4 items-center lg:grid xl:w-[520px]">

@@ -42,9 +42,7 @@ export function HeroSection() {
             {copy.hero.title}
           </h1>
           <p
-            className={`mt-6 max-w-[450px] font-story text-[18px] leading-[1.45] text-ink sm:text-[23px] sm:leading-[1.4] sm:tracking-[-0.005em] ${
-              language === "zh" ? "whitespace-pre-line" : ""
-            }`}
+            className="mt-6 max-w-[450px] whitespace-pre-line font-story text-[18px] leading-[1.45] text-ink sm:text-[23px] sm:leading-[1.4] sm:tracking-[-0.005em]"
           >
             {copy.hero.tagline}
           </p>

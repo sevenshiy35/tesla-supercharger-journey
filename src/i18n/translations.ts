@@ -16,14 +16,14 @@ export const translations = {
     },
     hero: {
       title: "Every Stop, A Story.",
-      tagline: "Tracing America through its Supercharger network.",
+      tagline: "Tracing America through its\nSupercharger network.",
       exploreMap: "Explore the Map",
       viewProgress: "View Progress",
       visualAlt: "Abstract United States road journey with a vehicle silhouette",
     },
     journey: {
       introduction:
-        "Across America, the road unfolds in light, distance, and memory.",
+        "Across America, the road unfolds\nin light, distance, and memory.",
       stationsVisited: "Stations Visited",
       statesVisited: "States Visited",
       milesDriven: "Miles Driven",
