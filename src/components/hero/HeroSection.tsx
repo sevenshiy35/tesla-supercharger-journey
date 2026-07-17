@@ -32,17 +32,20 @@ export function HeroSection() {
           className="w-full max-w-[544px] lg:translate-y-5"
           contentClassName="p-6 sm:min-h-[370px] sm:px-[46px] sm:py-[42px]"
         >
-          <p className="mb-6 font-ui text-[17px] font-semibold text-ink">{copy.hero.eyebrow}</p>
           <h1
-            className={`text-balance font-story text-[34px] font-normal text-ink sm:text-[44px] lg:text-[52px] ${
+            className={`font-story text-[34px] font-normal text-ink sm:text-[44px] lg:text-[52px] ${
               language === "zh"
-                ? "leading-[1.15] tracking-[0.02em]"
-                : "leading-[1.08] tracking-[-0.025em]"
+                ? "whitespace-pre-line leading-[1.15] tracking-[0.02em]"
+                : "text-balance leading-[1.08] tracking-[-0.025em]"
             }`}
           >
             {copy.hero.title}
           </h1>
-          <p className="mt-6 max-w-[450px] font-ui text-[18px] leading-[1.45] text-ink sm:text-[23px] sm:leading-[1.4] sm:tracking-[-0.005em]">
+          <p
+            className={`mt-6 max-w-[450px] font-story text-[18px] leading-[1.45] text-ink sm:text-[23px] sm:leading-[1.4] sm:tracking-[-0.005em] ${
+              language === "zh" ? "whitespace-pre-line" : ""
+            }`}
+          >
             {copy.hero.tagline}
           </p>
           <div className="mt-10 flex flex-wrap gap-4">

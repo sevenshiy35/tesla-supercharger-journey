@@ -39,6 +39,8 @@
   font-size: clamp(2.6rem, 4.4vw, 4.9rem);
   letter-spacing: 0.02em;
   line-height: 1.15;
+  white-space: pre-line;
+  text-wrap: wrap;
 }
 
 .stage {
@@ -137,11 +139,14 @@
 .section[data-language="zh"] .introCard h3 {
   letter-spacing: 0.02em;
   line-height: 1.15;
+  white-space: pre-line;
+  text-wrap: wrap;
 }
 
 .introduction {
   margin: 1.15rem 0 0;
   color: var(--color-ink-muted);
+  font-family: var(--font-story-cn);
   font-size: clamp(0.9rem, 1.15vw, 1.02rem);
   line-height: 1.58;
 }

@@ -47,8 +47,8 @@ export const cinematicJourneyCopy = {
   },
   zh: {
     eyebrow: "2026 全美超级充电站旅行记录",
-    title: "用光影讲述一场公路旅行。",
-    introTitle: "一座站，一张照片，一段故事。",
+    title: "用光影讲述\n一场公路旅行。",
+    introTitle: "一座站，一张照片，\n一段故事。",
     sceneNavigation: "旅行场景",
     sceneLabel: "旅行插画",
     showScene: (title: string) => `显示${title}场景`,

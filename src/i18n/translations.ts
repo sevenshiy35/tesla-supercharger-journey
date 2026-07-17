@@ -16,7 +16,6 @@ export const translations = {
     },
     hero: {
       title: "Every Stop, A Story.",
-      eyebrow: "The 2026 Project",
       tagline: "Tracing America through its Supercharger network.",
       exploreMap: "Explore the Map",
       viewProgress: "View Progress",
@@ -151,9 +150,8 @@ export const translations = {
       openLanguage: "打开语言菜单",
     },
     hero: {
-      title: "每一站，都是故事。",
-      eyebrow: "2026 计划",
-      tagline: "一辆 Model Y，沿着超级充电网络驶过美国。",
+      title: "每一站，\n都是故事。",
+      tagline: "一辆 Model Y，沿着超级充电网络\n驶过美国。",
       exploreMap: "浏览地图",
       viewProgress: "查看进度",
       visualAlt: "美国公路旅程与车辆剪影的抽象画面",
