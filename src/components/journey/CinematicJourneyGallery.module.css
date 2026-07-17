@@ -27,7 +27,7 @@
 .sectionHeader h2 {
   max-width: 58rem;
   margin: 0;
-  font-family: var(--font-display-en);
+  font-family: var(--font-story-cn);
   font-size: clamp(2.6rem, 5.4vw, 5.75rem);
   font-weight: 400;
   letter-spacing: -0.045em;
@@ -36,7 +36,6 @@
 }
 
 .section[data-language="zh"] .sectionHeader h2 {
-  font-family: var(--font-story-cn);
   font-size: clamp(2.6rem, 4.4vw, 4.9rem);
   letter-spacing: 0.02em;
   line-height: 1.15;
@@ -127,7 +126,7 @@
 .introCard h3 {
   max-width: 23rem;
   margin: 0;
-  font-family: var(--font-display-en);
+  font-family: var(--font-story-cn);
   font-size: clamp(1.55rem, 2.6vw, 2.4rem);
   font-weight: 400;
   letter-spacing: -0.035em;
@@ -136,7 +135,6 @@
 }
 
 .section[data-language="zh"] .introCard h3 {
-  font-family: var(--font-story-cn);
   letter-spacing: 0.02em;
   line-height: 1.15;
 }
@@ -211,7 +209,7 @@
 
 .sceneTitle h3 {
   margin: 0;
-  font-family: var(--font-display-en);
+  font-family: var(--font-story-cn);
   font-size: clamp(2.5rem, 5vw, 5rem);
   font-weight: 400;
   letter-spacing: -0.055em;
@@ -220,7 +218,6 @@
 }
 
 .section[data-language="zh"] .sceneTitle h3 {
-  font-family: var(--font-story-cn);
   letter-spacing: 0.02em;
   line-height: 1.15;
 }

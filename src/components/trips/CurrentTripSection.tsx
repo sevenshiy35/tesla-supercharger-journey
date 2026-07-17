@@ -89,7 +89,7 @@ export function CurrentTripSection({ trip }: { trip: PublicHomepageTrip | null }
       <section id="trip" className="bg-canvas px-5 py-20 text-ink sm:px-8 lg:px-12 lg:py-28">
         <div className="mx-auto max-w-[1180px] border-y border-border-soft py-14">
           <p className="text-[12px] font-bold uppercase tracking-[0.22em] text-brand">{copy.trip.eyebrow}</p>
-          <h2 className={`mt-5 text-[42px] font-normal sm:text-[58px] ${language === "zh" ? "font-story-cn leading-[1.16]" : "font-display-en leading-[1.02] tracking-[-0.035em]"}`}>{copy.trip.emptyTitle}</h2>
+          <h2 className={`mt-5 font-story text-[42px] font-normal sm:text-[58px] ${language === "zh" ? "leading-[1.16]" : "leading-[1.02] tracking-[-0.035em]"}`}>{copy.trip.emptyTitle}</h2>
           <p className="mt-5 max-w-xl text-[18px] leading-8 text-ink-muted">{copy.trip.emptyDescription}</p>
         </div>
       </section>
@@ -112,8 +112,8 @@ export function CurrentTripSection({ trip }: { trip: PublicHomepageTrip | null }
         <div className="grid items-center gap-10 lg:grid-cols-[0.72fr_1.28fr] lg:gap-16">
           <header>
             <p className="text-[12px] font-bold uppercase tracking-[0.24em] text-brand">{isComplete ? copy.trip.completeEyebrow : copy.trip.eyebrow}</p>
-            <h2 className={`mt-6 text-balance text-[52px] font-normal sm:text-[68px] lg:text-[76px] ${language === "zh" ? "font-story-cn leading-[1.12] tracking-[0.02em]" : "font-display-en leading-[0.98] tracking-[-0.045em]"}`}>{trip.name}</h2>
-            <p className={`mt-7 text-[20px] text-ink ${language === "zh" ? "font-story-cn" : "font-display-en"}`}>{formatTripDates(trip, language)}</p>
+            <h2 className={`mt-6 text-balance font-story text-[52px] font-normal sm:text-[68px] lg:text-[76px] ${language === "zh" ? "leading-[1.12] tracking-[0.02em]" : "leading-[0.98] tracking-[-0.045em]"}`}>{trip.name}</h2>
+            <p className="mt-7 font-story text-[20px] text-ink">{formatTripDates(trip, language)}</p>
             <p className="mt-5 max-w-[460px] text-[17px] leading-7 text-ink-muted">{narrative}</p>
           </header>
           <PublicTripMap trip={trip} label={copy.trip.mapLabel} />
@@ -149,7 +149,7 @@ export function CurrentTripSection({ trip }: { trip: PublicHomepageTrip | null }
                   <span aria-hidden className={`${styles.marker} ${markerState}`}>
                     {isHome ? <House size={22} strokeWidth={2.4} /> : visited ? <Check size={24} strokeWidth={2.5} /> : null}
                   </span>
-                  <p className={`mt-5 text-[19px] leading-6 ${language === "zh" ? "font-story-cn" : "font-display-en"}`}>{isHome ? copy.trip.homeLabel : `${stop?.city}, ${stop?.state}`}</p>
+                  <p className="mt-5 font-story text-[19px] leading-6">{isHome ? copy.trip.homeLabel : `${stop?.city}, ${stop?.state}`}</p>
                   <p className={`mt-2 text-[13px] font-bold uppercase tracking-[0.08em] ${visited ? "text-visited" : current ? "text-brand" : "text-unvisited"}`}>{isHome ? copy.trip.homeStatus : stop ? stopStatus(stop, nextStop?.id ?? null, language) : null}</p>
                   <p className="mt-2 text-[13px] text-ink-subtle">{isHome ? copy.trip.homeLocation : stop ? formatStopDate(stop, language) : null}</p>
                 </li>
@@ -159,7 +159,7 @@ export function CurrentTripSection({ trip }: { trip: PublicHomepageTrip | null }
         </div>
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-border-soft pt-7">
-          <p className={`text-[21px] text-ink ${language === "zh" ? "font-story-cn" : "font-display-en"}`}>{progress}</p>
+          <p className="font-story text-[21px] text-ink">{progress}</p>
           <p className="font-data text-[12px] uppercase tracking-[0.12em] text-ink-subtle">{copy.trip.liveLabel}</p>
         </div>
       </div>

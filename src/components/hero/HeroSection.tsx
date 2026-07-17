@@ -34,15 +34,15 @@ export function HeroSection() {
         >
           <p className="mb-6 font-ui text-[17px] font-semibold text-ink">{copy.hero.eyebrow}</p>
           <h1
-            className={`text-balance text-[30px] font-normal text-ink sm:text-[40px] lg:text-[46px] ${
+            className={`text-balance font-story text-[34px] font-normal text-ink sm:text-[44px] lg:text-[52px] ${
               language === "zh"
-                ? "font-story-cn leading-[1.15] tracking-[0.02em]"
-                : "font-display-en leading-[1.08] tracking-[-0.025em]"
+                ? "leading-[1.15] tracking-[0.02em]"
+                : "leading-[1.08] tracking-[-0.025em]"
             }`}
           >
             {copy.hero.title}
           </h1>
-          <p className="mt-6 max-w-[450px] font-ui text-[21px] leading-[1.35] text-ink sm:text-[27px] sm:tracking-[-0.01em]">
+          <p className="mt-6 max-w-[450px] font-ui text-[18px] leading-[1.45] text-ink sm:text-[23px] sm:leading-[1.4] sm:tracking-[-0.005em]">
             {copy.hero.tagline}
           </p>
           <div className="mt-10 flex flex-wrap gap-4">

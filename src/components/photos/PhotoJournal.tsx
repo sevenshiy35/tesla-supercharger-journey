@@ -75,7 +75,7 @@ export function PhotoJournal({ photos }: { photos: PublicPhotoJournalItem[] }) {
       <header className="grid gap-8 border-b border-border-soft pb-12 lg:grid-cols-[1fr_0.55fr] lg:items-end lg:pb-16">
         <div>
           <p className="text-[12px] font-bold uppercase tracking-[0.24em] text-brand">{copy.photos.eyebrow}</p>
-          <h1 className={`mt-6 max-w-[880px] text-balance text-[52px] font-normal sm:text-[74px] lg:text-[88px] ${language === "zh" ? "font-story-cn leading-[1.12] tracking-[0.02em]" : "font-display-en leading-[0.94] tracking-[-0.05em]"}`}>{copy.photos.title}</h1>
+          <h1 className={`mt-6 max-w-[880px] text-balance font-story text-[52px] font-normal sm:text-[74px] lg:text-[88px] ${language === "zh" ? "leading-[1.12] tracking-[0.02em]" : "leading-[0.94] tracking-[-0.05em]"}`}>{copy.photos.title}</h1>
         </div>
         <div className="lg:pb-2">
           <p className="max-w-[460px] text-[17px] leading-7 text-ink-muted">{copy.photos.description}</p>
@@ -112,7 +112,7 @@ export function PhotoJournal({ photos }: { photos: PublicPhotoJournalItem[] }) {
                 </button>
                 <figcaption className="mt-3 flex items-start justify-between gap-4 px-1">
                   <div>
-                    <p className={`text-[17px] leading-6 text-ink ${language === "zh" ? "font-story-cn" : "font-display-en"}`}>{photo.caption?.trim() || photo.stationName}</p>
+                    <p className="font-story text-[17px] leading-6 text-ink">{photo.caption?.trim() || photo.stationName}</p>
                     <p className="mt-1 flex items-center gap-1.5 text-[12px] text-ink-subtle"><MapPin size={13} aria-hidden />{photo.city}, {photo.state}{date ? ` · ${date}` : ""}</p>
                   </div>
                   <Link href={`/visits/${photo.visitId}`} className="shrink-0 text-[12px] font-bold text-brand underline decoration-brand/30 underline-offset-4 hover:decoration-brand">{copy.photos.viewVisit}</Link>
@@ -123,7 +123,7 @@ export function PhotoJournal({ photos }: { photos: PublicPhotoJournalItem[] }) {
         </div>
       ) : (
         <div className="flex min-h-[320px] items-center justify-center border-b border-border-soft text-center">
-          <p className={`max-w-xl text-[32px] text-ink-muted sm:text-[42px] ${language === "zh" ? "font-story-cn" : "font-display-en"}`}>{copy.photos.empty}</p>
+          <p className="max-w-xl font-story text-[32px] text-ink-muted sm:text-[42px]">{copy.photos.empty}</p>
         </div>
       )}
 

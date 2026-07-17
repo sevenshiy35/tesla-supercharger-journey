@@ -22,10 +22,10 @@ export function LatestCheckIns({ checkIns, dataSource }: LatestCheckInsProps) {
       <div className="mx-auto max-w-[1180px]">
         <div className="max-w-[760px]">
           <h2
-            className={`text-balance text-[40px] font-normal sm:text-[56px] ${
+            className={`text-balance font-story text-[40px] font-normal sm:text-[56px] ${
               language === "zh"
-                ? "font-story-cn leading-[1.15] tracking-[0.02em]"
-                : "font-display-en leading-[1.1] tracking-[-0.025em]"
+                ? "leading-[1.15] tracking-[0.02em]"
+                : "leading-[1.1] tracking-[-0.025em]"
             }`}
           >
             {copy.checkIns.title}
