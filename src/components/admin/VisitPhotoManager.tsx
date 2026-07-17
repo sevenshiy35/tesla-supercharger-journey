@@ -28,6 +28,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import {
   MAX_PHOTO_CAPTION_LENGTH,
+  MAX_VISIT_PHOTOS,
   PHOTO_COMPRESSION_CONCURRENCY,
   PHOTO_UPLOAD_CONCURRENCY,
   PHOTO_TYPE_LABELS,
@@ -341,7 +342,16 @@ export function VisitPhotoManager({
   function addFiles(files: FileList | null) {
     if (!files?.length) return;
     setGlobalError(null);
-    const incoming = [...files];
+    const pendingCount = selectedRef.current.filter((photo) => photo.status !== "cancelled" && photo.status !== "uploaded").length;
+    const remaining = Math.max(0, MAX_VISIT_PHOTOS - photos.length - pendingCount);
+    const incoming = [...files].slice(0, remaining);
+    if (!incoming.length) {
+      setGlobalError(`A charging-station check-in can have up to ${MAX_VISIT_PHOTOS} photos. Add the rest to the Trip instead.`);
+      return;
+    }
+    if (files.length > remaining) {
+      setGlobalError(`Only ${remaining} more station photo${remaining === 1 ? "" : "s"} can be added. Extra travel photos belong in the Trip gallery.`);
+    }
     const additions = incoming.map((file): SelectedPhoto => ({
       localId: crypto.randomUUID(),
       photoId: crypto.randomUUID(),
@@ -541,6 +551,8 @@ export function VisitPhotoManager({
   const queuedForUpload = selected.filter((photo) =>
     photo.status === "waiting" || photo.status === "ready" || photo.status === "failed",
   ).length;
+  const pendingCount = selected.filter((photo) => photo.status !== "cancelled" && photo.status !== "uploaded").length;
+  const stationPhotoSlotsFull = photos.length + pendingCount >= MAX_VISIT_PHOTOS;
 
   return (
     <section className="mt-8 rounded-[28px] border border-[#d5e6df] bg-white p-5 shadow-sm sm:p-7">
@@ -551,11 +563,12 @@ export function VisitPhotoManager({
         </div>
         <button
           type="button"
+          disabled={stationPhotoSlotsFull && !uploadOpen}
           onClick={() => setUploadOpen((value) => !value)}
-          className="flex min-h-12 items-center justify-center gap-2 rounded-full bg-ink px-5 font-semibold text-white"
+          className="flex min-h-12 items-center justify-center gap-2 rounded-full bg-ink px-5 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45"
         >
           {uploadOpen ? <X size={18} aria-hidden /> : <ImagePlus size={18} aria-hidden />}
-          {uploadOpen ? "Close Uploader" : "Add Photos"}
+          {uploadOpen ? "Close Uploader" : stationPhotoSlotsFull ? "2 photo limit reached" : "Add Station Photos"}
         </button>
       </div>
 
@@ -571,16 +584,13 @@ export function VisitPhotoManager({
             <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={(event) => addFiles(event.target.files)} />
             <input ref={libraryRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" multiple className="sr-only" onChange={(event) => addFiles(event.target.files)} />
           </div>
-          <p className="mt-3 text-xs leading-5 text-[#67817e]">JPEG, PNG, WebP, HEIC, or HEIF · optimized to about 2,048 px on the longest edge. This project adds no photo-count or file-size cap; actual limits come from Supabase Storage, your browser, device memory, and network.</p>
+          <p className="mt-3 text-xs leading-5 text-[#67817e]">Add 1–2 photos that document this charging stop. JPEG, PNG, WebP, HEIC, or HEIF images are optimized to about 2,048 px. Put all other travel photos in the Trip gallery.</p>
 
           {selected.length ? (
             <div className="mt-5 space-y-4">
               <div className="rounded-2xl bg-[#eaf3ef] px-4 py-3 text-sm text-[#365f59]">
                 Total {queueCounts.total} · Completed {queueCounts.completed} · Uploading {queueCounts.uploading} · Failed {queueCounts.failed} · Waiting {queueCounts.waiting}
               </div>
-              {selected.filter((photo) => photo.status !== "uploaded" && photo.status !== "cancelled").length >= 10 ? (
-                <p className="rounded-2xl bg-[#fff5e6] px-4 py-3 text-sm text-[#815719]">Large batches may take longer. Keep this page open while uploads complete.</p>
-              ) : null}
               {selected.map((item) => (
                 <div key={item.localId} className="rounded-[20px] border border-[#d5e6df] bg-white p-3 sm:p-4">
                   <div className="flex gap-3">
@@ -667,7 +677,7 @@ export function VisitPhotoManager({
         <div className="mt-7 rounded-[22px] bg-[#f2f6f3] px-5 py-10 text-center">
           <Images size={28} className="mx-auto text-[#67817e]" aria-hidden />
           <p className="mt-3 font-semibold">No photos yet</p>
-          <p className="mt-1 text-sm text-[#67817e]">Add camera photos or choose any number of images from your library.</p>
+          <p className="mt-1 text-sm text-[#67817e]">Add 1–2 photos of the charging stop. Travel photos belong to the Trip.</p>
         </div>
       )}
     </section>

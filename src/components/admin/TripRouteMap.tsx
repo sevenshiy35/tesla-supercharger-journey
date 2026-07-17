@@ -123,7 +123,8 @@ export function TripRouteMap({
         }
         for (const stop of stops ?? []) {
           const element = document.createElement("div");
-          element.className = `relative flex size-5 items-center justify-center rounded-full border-2 text-[9px] font-bold shadow-sm ${stop.source === "manual" ? "border-[#8b651d] bg-[#f3c85f] text-[#32230a]" : stop.isLocked ? "border-white bg-[#315f92] text-white" : stop.isVisited ? "border-[#8b651d] bg-[#f3e8d2] text-[#725d30]" : "border-white bg-[#167d73] text-white"}`;
+          const checkedIn = stop.status === "visited";
+          element.className = `relative flex size-5 items-center justify-center rounded-full border-2 text-[9px] font-bold shadow-sm ${checkedIn ? "border-white bg-[#2f8f78] text-white ring-2 ring-[#b9ded1]" : stop.source === "manual" ? "border-[#8b651d] bg-[#f3c85f] text-[#32230a]" : stop.isLocked ? "border-white bg-[#315f92] text-white" : stop.isVisited ? "border-[#b79b62] bg-[#f3e8d2] text-[#725d30]" : "border-white bg-[#167d73] text-white"}`;
           element.textContent = String(stop.sequence + 1);
           if (stop.payToPark) {
             const payBadge = document.createElement("span");
@@ -131,12 +132,12 @@ export function TripRouteMap({
             payBadge.textContent = "$";
             element.append(payBadge);
           }
-          element.setAttribute("aria-label", `Planned Stop ${stop.sequence + 1}: ${stop.stationName}${stop.payToPark ? ", Pay to park" : ""}`);
+          element.setAttribute("aria-label", `${checkedIn ? "Checked-in" : "Planned"} Stop ${stop.sequence + 1}: ${stop.stationName}${stop.payToPark ? ", Pay to park" : ""}`);
           const popupContent = document.createElement("div");
           const title = document.createElement("strong");
           title.textContent = `Stop ${stop.sequence + 1}: ${stop.stationName}`;
           const details = document.createElement("div");
-          details.textContent = `${stop.address} · ${stop.city}, ${stop.state} · ${stop.leg === "return" ? "Return" : "Outbound"} · ${stop.source === "manual" ? "Manual" : "Legacy saved Stop"} · ${stop.isVisited ? "Visited" : "Expected new"}${stop.payToPark ? " · $ Pay to park" : ""}`;
+          details.textContent = `${stop.address} · ${stop.city}, ${stop.state} · ${stop.leg === "return" ? "Return" : "Outbound"} · ${stop.source === "manual" ? "Manual" : "Legacy saved Stop"} · ${checkedIn ? "Checked in on this Trip" : stop.isVisited ? "Previously visited" : "Expected new"}${stop.payToPark ? " · $ Pay to park" : ""}`;
           popupContent.append(title, details);
           if (stop.payToPark) {
             const personal = document.createElement("div");

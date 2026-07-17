@@ -31,6 +31,7 @@ type Coordinates = { latitude: number; longitude: number };
 
 interface SuccessState {
   visitId: string;
+  linkedTripPlanId?: string;
   stationName: string;
   checkedInAt: string;
   timezone: string;
@@ -224,6 +225,7 @@ export function CheckInForm() {
 
     setSuccess({
       visitId: result.visitId,
+      linkedTripPlanId: result.linkedTripPlanId,
       stationName: selectedStation.name,
       checkedInAt: result.checkedInAt,
       timezone: result.checkedInTimezone,
@@ -261,7 +263,20 @@ export function CheckInForm() {
         <div className="mt-3">
           <PublicBadge isPublic={success.isPublic} />
         </div>
+        {success.linkedTripPlanId ? (
+          <p role="status" className="mt-5 rounded-2xl border border-[#b9ded1] bg-[#e7f5ef] px-4 py-3 text-sm font-semibold text-[#245e52]">
+            This Stop is now checked in on your current Trip.
+          </p>
+        ) : null}
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
+          {success.linkedTripPlanId ? (
+            <Link
+              href={`/admin/trips/${success.linkedTripPlanId}` as Route}
+              className="flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#e7f5ef] px-5 font-semibold text-[#245e52]"
+            >
+              <Map size={18} aria-hidden /> View Updated Trip
+            </Link>
+          ) : null}
           <Link
             href={`/admin/visits/${success.visitId}` as Route}
             className="flex min-h-12 items-center justify-center rounded-full bg-ink px-5 font-semibold text-white"
@@ -271,7 +286,7 @@ export function CheckInForm() {
           <button
             type="button"
             onClick={checkInAnother}
-            className="min-h-12 rounded-full border border-[#bedbd5] bg-white px-5 font-semibold text-ink"
+            className={`min-h-12 rounded-full border border-[#bedbd5] bg-white px-5 font-semibold text-ink ${success.linkedTripPlanId ? "sm:col-span-2" : ""}`}
           >
             Check In Another Station
           </button>

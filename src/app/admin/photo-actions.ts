@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/auth/admin";
 import { isUuid } from "@/lib/admin/validation";
 import {
   MAX_PHOTO_CAPTION_LENGTH,
+  MAX_VISIT_PHOTOS,
   VISIT_PHOTO_BUCKET,
   extensionForPhotoMime,
   isVisitPhotoType,
@@ -115,6 +116,19 @@ export async function createVisitPhotoMetadataAction(
   if (visitError || !visit) {
     await supabase.storage.from(VISIT_PHOTO_BUCKET).remove([input.storagePath]);
     return { ok: false, error: "The Visit no longer exists; the uploaded object was removed." };
+  }
+  const { count: existingPhotoCount, error: countError } = await supabase
+    .from("visit_photos")
+    .select("id", { count: "exact", head: true })
+    .eq("visit_id", input.visitId);
+  if (countError || (existingPhotoCount ?? 0) >= MAX_VISIT_PHOTOS) {
+    await supabase.storage.from(VISIT_PHOTO_BUCKET).remove([input.storagePath]);
+    return {
+      ok: false,
+      error: countError
+        ? "The station photo count could not be verified; the uploaded object was removed."
+        : `A charging-station check-in can have up to ${MAX_VISIT_PHOTOS} photos. Add other memories to the Trip gallery.`,
+    };
   }
   const resolvedTime = resolveExifTakenAt(
     input.takenAtCandidate,

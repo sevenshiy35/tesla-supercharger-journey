@@ -38,7 +38,7 @@ add("04 Draft actions does not show Estimated time at each station", () => asser
 add("05 Draft actions does not show Save Settings", () => assert.doesNotMatch(manager, /Save Settings/i));
 add("06 old automatic objective card is absent", () => assert.doesNotMatch(`${manager}\n${newForm}`, /add as many unvisited stations as possible within your detour budget/i));
 add("07 Planning limits copy is absent from current UI", () => assert.doesNotMatch(clientSources, /Planning limits|Edit planning limits/i));
-add("08 Draft actions exposes Edit route and Delete draft", () => { assert.match(manager, /Edit route/); assert.match(manager, /Delete draft/); });
+add("08 Draft actions exposes Confirm Trip, Edit route, and Delete draft", () => { assert.match(manager, /Confirm Trip/); assert.match(manager, /Edit route/); assert.match(manager, /Delete draft/); });
 
 // Route basics (9-16)
 add("09 Trip Type shares the endpoint fields component", () => { assert.match(basics, /Trip Type/); assert.equal((basics.match(/<TripEndpointPicker/g) ?? []).length, 2); });

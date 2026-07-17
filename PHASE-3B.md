@@ -38,8 +38,8 @@ Planning Limits are no longer ordinary product settings. The UI does not expose 
 maximum extra time/distance, Station dwell time, or maximum Stops. Users explicitly choose Stations;
 the software assigns round-trip legs, optimizes visit order, and calculates the route. One-way keeps
 manual Add Stop, reorder, and Recalculate Route. Results present Base, Optimized, and Additional
-driving time/distance, not budget status. `stop_duration_minutes = 10` remains an internal compatibility
-default and its stop-time/total-time estimate is hidden.
+driving time/distance, not budget status. `stop_duration_minutes = 3` is the internal quick check-in
+estimate; its stop-time/total-time estimate remains hidden from the simplified UI.
 
 The 10/25/50/75/100-mile **Display corridor** defaults to 50 and is local map filtering only. It never
 writes `trip_plans.corridor_miles`, removes selected/current Stops, or limits optimization. The old

@@ -167,7 +167,7 @@ export interface SuggestedTripStop {
   isLocked: boolean;
   isVisited: boolean;
   payToPark: boolean;
-  status: "planned";
+  status: TripPlanStopStatus;
 }
 
 export type TripBudgetStatus = "within" | "over_time" | "over_distance" | "over_both";
@@ -310,5 +310,5 @@ export const DEFAULT_TRIP_PLAN_SETTINGS: Readonly<TripPlanSettings> = {
   maxExtraMinutes: 120,
   maxExtraMiles: null,
   maxStops: null,
-  stopDurationMinutes: 10,
+  stopDurationMinutes: 3,
 };

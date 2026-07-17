@@ -60,7 +60,8 @@ function StopCard({ stop, disabled, canMoveEarlier, canMoveLater, roundTrip, onM
   onMove: (direction: -1 | 1) => void; onMoveLeg: () => void; onRemove: () => void;
   onDragStart: () => void; onDrop: () => void;
 }) {
-  return <li draggable={!disabled} onDragStart={onDragStart} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); onDrop(); }} className={`rounded-[22px] border p-4 sm:p-5 ${stop.source === "manual" ? "border-[#e5c982] bg-[#fffdf5]" : "border-[#d5e6df] bg-white"}`}>
+  const checkedIn = stop.status === "visited";
+  return <li draggable={!disabled} onDragStart={onDragStart} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); onDrop(); }} className={`rounded-[22px] border p-4 sm:p-5 ${checkedIn ? "border-[#b9ded1] bg-[#e7f5ef]" : stop.source === "manual" ? "border-[#e5c982] bg-[#fffdf5]" : "border-[#d5e6df] bg-white"}`}>
     <div className="flex items-start gap-3">
       <button type="button" disabled={disabled} aria-label={`Drag Stop ${stop.sequence + 1}`} className="flex min-h-11 min-w-11 cursor-grab items-center justify-center rounded-full text-[#67817e] disabled:opacity-40"><GripVertical size={20} /></button>
       <div className="min-w-0 flex-1">
@@ -68,7 +69,7 @@ function StopCard({ stop, disabled, canMoveEarlier, canMoveLater, roundTrip, onM
         <h3 className="mt-1 text-lg font-semibold">{stop.stationName}</h3>
         <p className="mt-1 text-sm text-[#486d69]">{stop.address} · {stop.city}, {stop.state}</p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${stop.isVisited ? "bg-[#f3e8d2] text-[#725d30]" : "bg-[#e7f5ef] text-[#245e52]"}`}>{stop.isVisited ? "Visited" : "Expected new"}</span>
+          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${checkedIn ? "bg-white text-[#245e52]" : stop.isVisited ? "bg-[#f3e8d2] text-[#725d30]" : "bg-[#e7f5ef] text-[#245e52]"}`}>{checkedIn ? "Checked in" : stop.isVisited ? "Previously visited" : "Expected new"}</span>
           <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${stop.source === "manual" ? "bg-[#fff0c8] text-[#725d30]" : "bg-[#eaf1fb] text-[#315f92]"}`}>{stop.source === "manual" ? "Manually added" : "Legacy saved Stop"}</span>
           {stop.payToPark ? <PayToParkBadge /> : null}
         </div>

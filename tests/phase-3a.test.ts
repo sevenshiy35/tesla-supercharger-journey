@@ -4,6 +4,7 @@ import path from "node:path";
 import test from "node:test";
 import {
   MAX_PHOTO_EDGE,
+  MAX_VISIT_PHOTOS,
   PHOTO_COMPRESSION_CONCURRENCY,
   PHOTO_UPLOAD_CONCURRENCY,
   VISIT_PHOTO_BUCKET,
@@ -87,10 +88,9 @@ test("12 photo RPCs are executable by authenticated", async () => assert.match(a
 test("13 create RPC checks app_admins", async () => assert.match(functionBody(await migrationPromise, "admin_create_visit_photo"), /app_admins/));
 test("14 create RPC fixes user_id to auth.uid", async () => assert.match(functionBody(await migrationPromise, "admin_create_visit_photo"), /v_user_id uuid := auth\.uid\(\)[\s\S]+v_user_id/));
 test("15 create RPC enforces an exact generated path", async () => assert.match(functionBody(await migrationPromise, "admin_create_visit_photo"), /v_expected_path[\s\S]+p_storage_path is distinct from v_expected_path/i));
-test("16 create RPC has no per-Visit photo count cap", async () => assert.doesNotMatch(functionBody(await migrationPromise, "admin_create_visit_photo"), /count\(\*\)[\s\S]+>=\s*\d+/i));
-test("17 photo constants define concurrency but no count cap", async () => {
-  const source = await readFile("src/lib/photos/constants.ts", "utf8");
-  assert.doesNotMatch(source, /MAX_(?:FILES|PHOTOS)|PER_(?:UPLOAD|VISIT)/);
+test("16 the original RPC remains backward compatible while the Server Action enforces the new Visit cap", async () => assert.doesNotMatch(functionBody(await migrationPromise, "admin_create_visit_photo"), /count\(\*\)[\s\S]+>=\s*\d+/i));
+test("17 photo constants define a two-photo Visit cap and bounded worker concurrency", () => {
+  assert.equal(MAX_VISIT_PHOTOS, 2);
   assert.ok(PHOTO_COMPRESSION_CONCURRENCY >= 1 && PHOTO_COMPRESSION_CONCURRENCY <= 2);
   assert.ok(PHOTO_UPLOAD_CONCURRENCY >= 2 && PHOTO_UPLOAD_CONCURRENCY <= 3);
 });
@@ -204,20 +204,21 @@ test("63 captions are rendered as plain React text", async () => {
   assert.doesNotMatch(await publicPagePromise, /dangerouslySetInnerHTML/);
 });
 
-test("64 selecting six or more files adds every file to the queue", async () => {
+test("64 Visit selection takes only the remaining one-or-two station-photo slots", async () => {
   const source = await managerPromise;
   assert.match(source, /const additions = incoming\.map/);
-  assert.doesNotMatch(source, /incoming\.slice\(0/);
+  assert.match(source, /MAX_VISIT_PHOTOS - photos\.length - pendingCount/);
+  assert.match(source, /\[\.\.\.files\]\.slice\(0, remaining\)/);
 });
-test("65 a large selection has no fixed-count rejection", async () => {
+test("65 Visit overflow points travel photos to the Trip gallery", async () => {
   const source = await managerPromise;
-  assert.doesNotMatch(source, /at most (?:5|five)|first \$\{allowed\}|MAX_PHOTOS/i);
-  assert.match(source, /Large batches may take longer\. Keep this page open while uploads complete\./);
+  assert.match(source, /up to \$\{MAX_VISIT_PHOTOS\} photos/);
+  assert.match(source, /Extra travel photos belong in the Trip gallery/);
 });
-test("66 a Visit with more than 20 photos can still prepare an upload", async () => {
+test("66 the prepared Storage target remains count-independent until metadata creation", async () => {
   const source = await actionsPromise;
   const body = source.slice(source.indexOf("prepareVisitPhotoUploadAction"), source.indexOf("createVisitPhotoMetadataAction"));
-  assert.doesNotMatch(body, /count|capacity|20 photos/i);
+  assert.doesNotMatch(body, /MAX_VISIT_PHOTOS|existingPhotoCount/i);
 });
 test("67 a large file is not rejected by a project MB threshold", async () => {
   const source = await readFile("src/lib/photos/image-processing.ts", "utf8");
@@ -228,13 +229,14 @@ test("68 Migration has no maximum file-size constraint", async () => {
   const sql = await migrationPromise;
   assert.doesNotMatch(sql, /file_size_bytes\s*(?:<=|<)\s*(?!0\b)[1-9]\d*|6\s*MB|20\s*MB/i);
 });
-test("69 create RPC has no per-Visit quantity guard", async () => {
+test("69 the legacy RPC signature remains unchanged", async () => {
   const body = functionBody(await migrationPromise, "admin_create_visit_photo");
   assert.doesNotMatch(body, /at most \d+ photos|count\(\*\)[\s\S]{0,100}>=/i);
 });
-test("70 Server Actions have no per-batch quantity guard", async () => {
+test("70 metadata Server Action rejects a third Visit photo and cleans up Storage", async () => {
   const source = await actionsPromise;
-  assert.doesNotMatch(source, /MAX_(?:FILES|PHOTOS)|photoIds\.length\s*>/);
+  assert.match(source, /existingPhotoCount[\s\S]+>= MAX_VISIT_PHOTOS/);
+  assert.match(source, /existingPhotoCount[\s\S]+remove\(\[input\.storagePath\]\)/);
 });
 test("71 compression workers never exceed configured concurrency", async () => {
   let active = 0;

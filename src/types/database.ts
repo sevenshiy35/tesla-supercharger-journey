@@ -65,6 +65,13 @@ type DatabaseOverrides = {
           p_notes?: string | null;
         };
       };
+      admin_check_in_station: {
+        Args: {
+          p_recorded_latitude?: number | null;
+          p_recorded_longitude?: number | null;
+          p_notes?: string | null;
+        };
+      };
       admin_update_station_visit: {
         Args: {
           p_notes: string | null;

@@ -15,6 +15,7 @@ import type {
   TripPlanSegment,
   TripPlanStatus,
   TripPlanStop,
+  TripPlanStopStatus,
   TripPlanSummary,
   SuggestedTripStop,
   TripRouteKind,
@@ -132,7 +133,7 @@ export async function getAdminSuggestedTripStops(id: string): Promise<SuggestedT
       stations!inner(name, address, city, state, latitude, longitude)
     `)
     .eq("trip_plan_id", id)
-    .eq("status", "planned")
+    .neq("status", "skipped")
     .order("sequence", { ascending: true });
   if (error) throw new TripRepositoryError("Planned Stops could not be loaded.");
   const rows = (data ?? []) as unknown as SuggestedStopRow[];
@@ -165,9 +166,9 @@ export async function getAdminSuggestedTripStops(id: string): Promise<SuggestedT
     selectionRank: row.selection_rank,
     source: row.source === "manual" ? "manual" as const : "algorithm" as const,
     isLocked: row.source === "manual" || row.is_locked,
-    isVisited: visited.has(row.station_id),
+    isVisited: row.status === "visited" || visited.has(row.station_id),
     payToPark: payToParkStationIds.has(row.station_id),
-    status: "planned" as const,
+    status: (row.status === "visited" ? "visited" : "planned") as TripPlanStopStatus,
   }] : []);
 }
 

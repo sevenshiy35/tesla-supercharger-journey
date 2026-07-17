@@ -17,6 +17,10 @@ const nullableStopLimitMigrationPromise = readFile(
   "supabase/migrations/20260715190000_nullable_trip_stop_limit.sql",
   "utf8",
 );
+const threeMinuteStopMigrationPromise = readFile(
+  "supabase/migrations/20260716140000_three_minute_trip_stop_duration.sql",
+  "utf8",
+);
 const actionsPromise = readFile("src/app/admin/trip-actions.ts", "utf8");
 const repositoryPromise = readFile("src/lib/trips/repository.ts", "utf8");
 const typesPromise = readFile("src/lib/trips/types.ts", "utf8");
@@ -288,14 +292,14 @@ test("39 Trips Empty State is explicit", async () => {
   assert.match(await listPagePromise, /No trip plans yet\./);
 });
 
-test("40 compatibility defaults are 50 120 null no Stop cap and 10", () => {
+test("40 compatibility defaults are 50 120 null no Stop cap and a three-minute Stop", () => {
   assert.deepEqual(DEFAULT_TRIP_PLAN_SETTINGS, {
     tripType: "one_way",
     corridorMiles: 50,
     maxExtraMinutes: 120,
     maxExtraMiles: null,
     maxStops: null,
-    stopDurationMinutes: 10,
+    stopDurationMinutes: 3,
   });
 });
 
@@ -444,4 +448,36 @@ test("62 technical shortlist and iteration guards are not persisted as Trip sett
   const sql = await nullableStopLimitMigrationPromise;
   assert.doesNotMatch(sql, /MATRIX_SHORTLIST_LIMIT|DIRECTIONS_COORDINATE_LIMIT|ITERATION_LIMIT/i);
   assert.match(await phaseDocPromise, /stay in application code\/configuration, never in `trip_plans`/i);
+});
+
+test("63 future Trip Drafts use a three-minute Station dwell default", async () => {
+  const sql = await threeMinuteStopMigrationPromise;
+  assert.match(sql, /alter column stop_duration_minutes set default 3/i);
+  assert.match(sql, /admin_create_trip_plan_draft\([\s\S]+null::integer,[\s\S]+3[\s\S]+\) as created/i);
+});
+
+test("64 existing Drafts on the hidden ten-minute default move to three minutes", async () => {
+  const sql = await threeMinuteStopMigrationPromise;
+  assert.match(sql, /update public\.trip_plans as tp[\s\S]+stop_duration_minutes = 3/);
+  assert.match(sql, /where tp\.status = 'draft'[\s\S]+tp\.stop_duration_minutes = 10/);
+});
+
+test("65 migrated Draft Stop totals use three minutes per saved Stop", async () => {
+  const sql = await threeMinuteStopMigrationPromise;
+  assert.match(sql, /select count\(\*\)::integer \* 3 \* 60[\s\S]+from public\.trip_plan_stops as tps[\s\S]+tps\.trip_plan_id = tp\.id/);
+});
+
+test("66 the dwell-time Migration preserves historical and custom Trip values", async () => {
+  const sql = await threeMinuteStopMigrationPromise;
+  assert.doesNotMatch(sql, /where tp\.status (?:<>|!=) 'draft'|where tp\.status in/i);
+  assert.match(sql, /tp\.stop_duration_minutes = 10/);
+  assert.doesNotMatch(sql, /delete from public\.trip_plans|delete from public\.trip_plan_stops/i);
+});
+
+test("67 the replacement route Draft RPC keeps its security contract", async () => {
+  const sql = await threeMinuteStopMigrationPromise;
+  assert.match(sql, /create or replace function public\.admin_create_trip_plan_route_draft/);
+  assert.match(sql, /security definer[\s\S]+set search_path = public/);
+  assert.match(sql, /revoke all on function public\.admin_create_trip_plan_route_draft[\s\S]+from public, anon/);
+  assert.match(sql, /grant execute on function public\.admin_create_trip_plan_route_draft[\s\S]+to authenticated/);
 });

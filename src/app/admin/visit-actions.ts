@@ -37,6 +37,7 @@ export interface CreateVisitInput {
 export interface VisitMutationState {
   ok: boolean;
   visitId?: string;
+  linkedTripPlanId?: string;
   checkedInAt?: string;
   checkedInTimezone?: string;
   isPublic?: boolean;
@@ -52,12 +53,14 @@ function safeMutationError(message: string, fallback: string) {
   return fallback;
 }
 
-function refreshVisitPaths(visitId?: string) {
+function refreshVisitPaths(visitId?: string, tripPlanId?: string) {
   revalidatePath("/");
   revalidatePath("/admin");
   revalidatePath("/admin/check-in");
+  revalidatePath("/admin/trips");
   revalidatePath("/admin/visits");
   if (visitId) revalidatePath(`/admin/visits/${visitId}`);
+  if (tripPlanId) revalidatePath(`/admin/trips/${tripPlanId}`);
 }
 
 export async function searchStationsAction(query: string): Promise<StationResultsState> {
@@ -115,7 +118,7 @@ export async function createStationVisitAction(
   if (validationError) return { ok: false, error: validationError };
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("admin_create_station_visit", {
+  const { data, error } = await supabase.rpc("admin_check_in_station", {
     p_visit_id: input.visitId,
     p_station_id: input.stationId,
     p_checked_in_timezone: input.timezone.trim(),
@@ -133,10 +136,11 @@ export async function createStationVisitAction(
   }
 
   const visit = data[0];
-  refreshVisitPaths(visit.visit_id);
+  refreshVisitPaths(visit.visit_id, visit.trip_plan_id ?? undefined);
   return {
     ok: true,
     visitId: visit.visit_id,
+    linkedTripPlanId: visit.trip_plan_id ?? undefined,
     checkedInAt: visit.checked_in_at,
     checkedInTimezone: visit.checked_in_timezone,
     isPublic: visit.is_public,

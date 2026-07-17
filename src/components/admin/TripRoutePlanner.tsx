@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDownUp, Calculator, LoaderCircle, Save, Trash2 } from "lucide-react";
+import { ArrowDownUp, Calculator, CheckCircle2, LoaderCircle, LockKeyhole, Save, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -9,7 +9,7 @@ import {
   saveTripPlanRouteBasicsAction,
 } from "@/app/admin/trip-actions";
 import { endpointDistanceMeters } from "@/lib/trips/distance";
-import { formatTripDistance, formatTripDuration, formatTripType, formatTripUpdatedAt } from "@/lib/trips/format";
+import { formatTripDistance, formatTripDuration, formatTripStatus, formatTripType, formatTripUpdatedAt } from "@/lib/trips/format";
 import type { SelectedOutAndBackSummary, SuggestedTripStop, TripBaseRoute, TripEndpoint, TripPlanSegment, TripRoutePlannerPlan, TripRouteSegment, TripSuggestionSummary, TripType } from "@/lib/trips/types";
 import { TripRouteBasicsFields } from "./TripRouteBasicsFields";
 import { TripRouteMap } from "./TripRouteMap";
@@ -70,6 +70,33 @@ function Summary({ plan, tripType, origin, destination, route, stopCount }: { pl
       </dl>
       {calculatedAt ? <p className="mt-4 border-t border-[#e2ece8] pt-4 font-data text-xs text-[#67817e]">Last calculated {formatTripUpdatedAt(calculatedAt)}</p> : null}
       {calculatedAt && !route?.geometryPersisted ? <p className="mt-3 rounded-2xl bg-[#fffdf2] p-3 text-xs leading-5 text-[#725d30]">Metrics are saved. Under the current safe policy, route Geometry is generated through a private, no-store preview when needed.</p> : null}
+    </section>
+  );
+}
+
+function LockedStops({ plan, stops }: { plan: TripRoutePlannerPlan; stops: SuggestedTripStop[] }) {
+  const orderedStops = [...stops].sort((a, b) => a.sequence - b.sequence);
+  return (
+    <section className="mt-5 rounded-[28px] border border-[#d5e6df] bg-white p-5 shadow-sm sm:p-7">
+      <h2 className="text-2xl font-semibold">Trip Stops</h2>
+      <p className="mt-1 text-sm leading-6 text-[#486d69]">The saved Stop order is read-only for this {formatTripStatus(plan.status).toLowerCase()} Trip.</p>
+      <ol className="mt-5 grid gap-3 md:grid-cols-2">
+        {orderedStops.map((stop) => {
+          const checkedIn = stop.status === "visited";
+          return <li key={stop.id} className={`rounded-[20px] border p-4 transition ${checkedIn ? "border-[#b9ded1] bg-[#e7f5ef] shadow-[0_10px_30px_rgba(36,94,82,0.08)]" : "border-[#d5e6df] bg-[#f7faf8]"}`}>
+            <p className={`text-xs font-semibold uppercase tracking-[0.12em] ${checkedIn ? "text-[#327363]" : "text-action-blue"}`}>
+              Stop {stop.sequence + 1} · {stop.leg === "return" ? "Return" : "Outbound"}
+            </p>
+            <h3 className="mt-1 font-semibold">{stop.stationName}</h3>
+            <p className="mt-1 text-sm text-[#486d69]">{stop.address} · {stop.city}, {stop.state}</p>
+            {checkedIn ? <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-[#245e52]"><CheckCircle2 size={14} aria-hidden /> Checked in</span> : null}
+          </li>;
+        })}
+      </ol>
+      <div className="mt-5 rounded-[20px] border-2 border-dashed border-[#bedbd5] bg-[#f7faf8] p-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-action-blue">Destination</p>
+        <p className="mt-1 font-semibold">{plan.destinationLabel ?? "Not selected"}</p>
+      </div>
     </section>
   );
 }
@@ -256,6 +283,33 @@ export function TripRoutePlanner({ plan, persistedSegments, initialSuggestedStop
         extraDurationSeconds: result.summary.extraDriveSeconds,
       },
     } : current);
+  }
+
+  if (plan.status !== "draft") {
+    return (
+      <div className="mt-6 font-ui">
+        <section id="route-basics" className="rounded-[24px] border border-[#bcdcd5] bg-[#e7f5ef] p-5 sm:p-6">
+          <div className="flex items-start gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-[#245e52]">
+              <LockKeyhole size={20} aria-hidden />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold">Route locked</h2>
+              <p className="mt-1 text-sm leading-6 text-[#486d69]">
+                This Trip is {formatTripStatus(plan.status).toLowerCase()}. Its route basics, Stations, and Stop order are read-only.
+              </p>
+            </div>
+          </div>
+        </section>
+        <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(390px,0.85fr)]">
+          <div className="xl:sticky xl:top-6 xl:self-start">
+            <TripRouteMap origin={origin} destination={destination} baseSegments={route?.segments ?? []} plannedSegments={plannedSegments} plannedRouteStale={plannedRouteStale} stops={suggestedStops} loading={previewPending} routeError={previewError} />
+          </div>
+          <Summary plan={currentPlan} tripType={tripType} origin={origin} destination={destination} route={route} stopCount={suggestedStops.length} />
+        </div>
+        <LockedStops plan={currentPlan} stops={suggestedStops} />
+      </div>
+    );
   }
 
   return (

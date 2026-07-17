@@ -20,7 +20,7 @@
     "import:receipts": "tsx scripts/import-tesla-receipts.ts --dry-run",
     "import:receipts:dry": "tsx scripts/import-tesla-receipts.ts --dry-run",
     "import:receipts:apply": "tsx scripts/import-tesla-receipts.ts --apply",
-    "test": "tsx --test tests/phase-2b.test.ts tests/manual-stations.test.ts tests/receipt-import.test.ts tests/phase-2d.test.ts tests/phase-3a.test.ts tests/phase-3b.test.ts tests/phase-3b2.test.ts tests/phase-3b3.test.ts tests/phase-3b4.test.ts tests/phase-3b41.test.ts tests/database-type-overrides.test.ts tests/trip-planner-convergence.test.ts tests/trip-route-basics.test.ts tests/trip-name-editing.test.ts tests/station-pay-to-park.test.ts"
+    "test": "tsx --test tests/phase-2b.test.ts tests/manual-stations.test.ts tests/receipt-import.test.ts tests/phase-2d.test.ts tests/phase-3a.test.ts tests/phase-3b.test.ts tests/phase-3b2.test.ts tests/phase-3b3.test.ts tests/phase-3b4.test.ts tests/phase-3b41.test.ts tests/database-type-overrides.test.ts tests/trip-planner-convergence.test.ts tests/trip-route-basics.test.ts tests/trip-name-editing.test.ts tests/station-pay-to-park.test.ts tests/dashboard-trip-photos.test.ts tests/trip-confirmation.test.ts tests/trip-check-in-progress.test.ts"
   },
   "dependencies": {
     "@phosphor-icons/core": "^2.1.1",

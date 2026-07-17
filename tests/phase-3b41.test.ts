@@ -28,7 +28,6 @@ const planner = source("src/components/admin/TripRoutePlanner.tsx");
 const plannedRoute = source("src/lib/mapbox/planned-route.ts");
 const suggestionService = source("src/lib/trips/suggestion-service.ts");
 const homepage = source("src/app/page.tsx");
-const phase = source("PHASE-3B.md");
 
 type Case = [string, () => void | Promise<void>];
 const cases: Case[] = [];
@@ -199,7 +198,7 @@ add("selected route UI no longer presents budget status", () => { assert.match(s
 add("UI never promises a guaranteed shortest route", () => assert.doesNotMatch(`${selectionPanel}${selectionMap}`, /Guaranteed shortest|Mathematically perfect|Absolute shortest route/));
 add("One-way flow does not render the selection mode", () => assert.match(planner, /currentPlan\.tripType === "round_trip" \? <TripStationSelectionPanel/));
 add("Homepage has no Phase 3B.4.1 coupling", () => assert.doesNotMatch(homepage, /TripStationSelection|selected-out-and-back/));
-add("Trip confirmation remains paused", () => { assert.doesNotMatch(actions, /confirmTripPlanAction/); assert.match(phase, /3B\.5[\s\S]+paused/i); });
+add("Trip confirmation is available after Review", () => { assert.match(actions, /confirmTripPlanAction/); assert.match(actions, /admin_confirm_trip_plan/); });
 add("Client bundle contains no Mapbox server token", () => assert.doesNotMatch(`${selectionPanel}${selectionMap}${planner}`, /MAPBOX_SERVER_ACCESS_TOKEN/));
 add("Client bundle contains no Supabase secret", () => assert.doesNotMatch(`${selectionPanel}${selectionMap}${planner}`, /SUPABASE_SECRET_KEY|service_role/));
 

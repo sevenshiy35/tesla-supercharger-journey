@@ -559,6 +559,71 @@ export type Database = {
           },
         ]
       }
+      trip_photos: {
+        Row: {
+          bucket_name: string
+          caption: string | null
+          created_at: string
+          display_order: number
+          file_size_bytes: number
+          height: number
+          id: string
+          is_cover: boolean
+          is_public: boolean
+          mime_type: string
+          storage_path: string
+          taken_at: string | null
+          trip_plan_id: string
+          updated_at: string
+          user_id: string
+          width: number
+        }
+        Insert: {
+          bucket_name?: string
+          caption?: string | null
+          created_at?: string
+          display_order?: number
+          file_size_bytes: number
+          height: number
+          id?: string
+          is_cover?: boolean
+          is_public?: boolean
+          mime_type: string
+          storage_path: string
+          taken_at?: string | null
+          trip_plan_id: string
+          updated_at?: string
+          user_id: string
+          width: number
+        }
+        Update: {
+          bucket_name?: string
+          caption?: string | null
+          created_at?: string
+          display_order?: number
+          file_size_bytes?: number
+          height?: number
+          id?: string
+          is_cover?: boolean
+          is_public?: boolean
+          mime_type?: string
+          storage_path?: string
+          taken_at?: string | null
+          trip_plan_id?: string
+          updated_at?: string
+          user_id?: string
+          width?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_photos_trip_plan_id_fkey"
+            columns: ["trip_plan_id"]
+            isOneToOne: false
+            referencedRelation: "trip_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       visit_photos: {
         Row: {
           bucket_name: string
@@ -760,6 +825,27 @@ export type Database = {
           visit_id: string
         }[]
       }
+      admin_check_in_station: {
+        Args: {
+          p_checked_in_timezone: string
+          p_is_public?: boolean
+          p_notes?: string
+          p_recorded_latitude?: number
+          p_recorded_longitude?: number
+          p_station_id: string
+          p_visit_id: string
+        }
+        Returns: {
+          checked_in_at: string
+          checked_in_timezone: string
+          is_public: boolean
+          station_id: string
+          trip_activated: boolean
+          trip_plan_id: string
+          trip_plan_stop_id: string
+          visit_id: string
+        }[]
+      }
       admin_create_trip_plan_draft: {
         Args: {
           p_corridor_miles: number
@@ -845,6 +931,15 @@ export type Database = {
         Returns: {
           station_id: string
           visit_id: string
+        }[]
+      }
+      admin_confirm_trip_plan: {
+        Args: { p_expected_revision: number; p_trip_plan_id: string }
+        Returns: {
+          confirmed_at: string
+          status: string
+          trip_plan_id: string
+          updated_at: string
         }[]
       }
       admin_delete_trip_plan_draft: {

@@ -50,6 +50,11 @@ export interface TripPlanRenameState extends TripPlanMutationState {
   name?: string;
 }
 
+export interface TripPlanConfirmationState extends TripPlanMutationState {
+  status?: "confirmed";
+  confirmedAt?: string;
+}
+
 export interface TripRouteBasicsMutationState extends TripPlanMutationState {
   routeInputRevision?: number;
   changed?: boolean;
@@ -87,6 +92,8 @@ export interface TripStopSearchState {
 
 function safeTripMutationError(message: string, fallback: string) {
   if (/only draft/i.test(message)) return "Only Draft Trip Plans can be changed this way.";
+  if (/trip name.*required/i.test(message)) return "Add a Trip name before confirming.";
+  if (/planned route.*not ready|route.*not ready.*confirmation/i.test(message)) return "Finish and review the current route before confirming.";
   if (/stale route result/i.test(message)) return "The route inputs changed while Mapbox was calculating. Review the latest endpoints and calculate again.";
   if (/trip changed|stale|fixed manual/i.test(message)) return "The trip changed while this operation was running. Refresh and try again.";
   if (/coordinates do not match/i.test(message)) return "The selected Supercharger changed. Search for it again before saving.";
@@ -258,6 +265,39 @@ export async function updateTripPlanSettingsAction(
 
   refreshTripPaths(tripPlanId);
   return { ok: true, tripPlanId };
+}
+
+export async function confirmTripPlanAction(
+  tripPlanId: string,
+  expectedRevision: number,
+): Promise<TripPlanConfirmationState> {
+  await requireAdmin();
+  const idValidation = tripPlanIdSchema.safeParse(tripPlanId);
+  if (!idValidation.success) return { ok: false, error: idValidation.error.issues[0]?.message };
+  if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0) {
+    return { ok: false, error: "The route revision is invalid." };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_confirm_trip_plan", {
+    p_trip_plan_id: idValidation.data,
+    p_expected_revision: expectedRevision,
+  });
+
+  if (error || !data?.[0]) {
+    return {
+      ok: false,
+      error: safeTripMutationError(error?.message ?? "", "The Trip could not be confirmed. Please try again."),
+    };
+  }
+
+  refreshTripPaths(tripPlanId);
+  return {
+    ok: true,
+    tripPlanId,
+    status: "confirmed",
+    confirmedAt: data[0].confirmed_at,
+  };
 }
 
 export async function deleteTripPlanDraftAction(

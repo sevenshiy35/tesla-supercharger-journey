@@ -23,6 +23,22 @@ export interface AdminVisitPhoto {
   isCover: boolean;
 }
 
+export interface AdminTripPhoto {
+  id: string;
+  tripPlanId: string;
+  url: string;
+  caption: string | null;
+  isPublic: boolean;
+  takenAt: string | null;
+  createdAt: string;
+  mimeType: SupportedPhotoMime;
+  fileSizeBytes: number;
+  width: number;
+  height: number;
+  displayOrder: number;
+  isCover: boolean;
+}
+
 export interface PublicVisitPhoto {
   id: string;
   url: string;

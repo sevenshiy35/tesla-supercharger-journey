@@ -74,11 +74,21 @@ interface VisitQueryRow {
 
 export interface DashboardData {
   visitedStations: number;
+  totalStations: number;
   totalVisits: number;
-  publicVisits: number;
-  privateVisits: number;
-  visits2026: number;
-  recentVisits: AdminVisitSummary[];
+  visitedStates: number;
+  totalTrips: number;
+  activeTrips: number;
+  stationPhotos: number;
+  tripPhotos: number;
+  latestTrip: {
+    id: string;
+    name: string | null;
+    status: string;
+    originLabel: string | null;
+    destinationLabel: string | null;
+    updatedAt: string;
+  } | null;
 }
 
 export interface VisitFilters {
@@ -323,50 +333,75 @@ const VISIT_SUMMARY_COLUMNS = `
 
 export async function getAdminDashboardData(): Promise<DashboardData> {
   const supabase = await createClient();
-  const [visited, total, publicVisits, privateVisits, visits2026, recent] = await Promise.all([
+  const [
+    visited,
+    allStations,
+    total,
+    visitedStateRows,
+    trips,
+    activeTrips,
+    stationPhotos,
+    tripPhotos,
+    latestTrip,
+  ] = await Promise.all([
     supabase
       .from("public_station_status")
       .select("id", { count: "exact", head: true })
       .eq("visited", true),
+    supabase.from("public_station_status").select("id", { count: "exact", head: true }),
     supabase.from("station_visits").select("id", { count: "exact", head: true }),
     supabase
-      .from("station_visits")
-      .select("id", { count: "exact", head: true })
-      .eq("is_public", true),
+      .from("public_station_status")
+      .select("state")
+      .eq("visited", true)
+      .limit(5_000),
+    supabase.from("trip_plans").select("id", { count: "exact", head: true }),
     supabase
-      .from("station_visits")
+      .from("trip_plans")
       .select("id", { count: "exact", head: true })
-      .eq("is_public", false),
+      .in("status", ["confirmed", "active"]),
+    supabase.from("visit_photos").select("id", { count: "exact", head: true }),
+    supabase.from("trip_photos").select("id", { count: "exact", head: true }),
     supabase
-      .from("station_visits")
-      .select("id", { count: "exact", head: true })
-      .gte("checked_in_at", "2026-01-01T00:00:00.000Z")
-      .lt("checked_in_at", "2027-01-01T00:00:00.000Z"),
-    supabase
-      .from("station_visits")
-      .select(VISIT_SUMMARY_COLUMNS)
-      .order("checked_in_at", { ascending: false })
-      .limit(5),
+      .from("trip_plans")
+      .select("id,name,status,origin_label,destination_label,updated_at")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   if (
     visited.error ||
+    allStations.error ||
     total.error ||
-    publicVisits.error ||
-    privateVisits.error ||
-    visits2026.error ||
-    recent.error
+    visitedStateRows.error ||
+    trips.error ||
+    activeTrips.error ||
+    stationPhotos.error ||
+    latestTrip.error
   ) {
     throw new Error("Dashboard data is temporarily unavailable.");
   }
 
   return {
     visitedStations: visited.count ?? 0,
+    totalStations: allStations.count ?? 0,
     totalVisits: total.count ?? 0,
-    publicVisits: publicVisits.count ?? 0,
-    privateVisits: privateVisits.count ?? 0,
-    visits2026: visits2026.count ?? 0,
-    recentVisits: ((recent.data ?? []) as unknown as VisitQueryRow[]).map(mapVisit),
+    visitedStates: new Set((visitedStateRows.data ?? []).map((row) => row.state).filter(Boolean)).size,
+    totalTrips: trips.count ?? 0,
+    activeTrips: activeTrips.count ?? 0,
+    stationPhotos: stationPhotos.count ?? 0,
+    tripPhotos: tripPhotos.count ?? 0,
+    latestTrip: latestTrip.data
+      ? {
+          id: latestTrip.data.id,
+          name: latestTrip.data.name,
+          status: latestTrip.data.status,
+          originLabel: latestTrip.data.origin_label,
+          destinationLabel: latestTrip.data.destination_label,
+          updatedAt: latestTrip.data.updated_at,
+        }
+      : null,
   };
 }
 

@@ -1,4 +1,6 @@
 export const VISIT_PHOTO_BUCKET = "visit-photos";
+export const TRIP_PHOTO_BUCKET = "trip-photos";
+export const MAX_VISIT_PHOTOS = 2;
 export const MAX_PHOTO_EDGE = 2048;
 export const MAX_PHOTO_CAPTION_LENGTH = 1000;
 export const VISIT_PHOTO_SIGNED_URL_SECONDS = 10 * 60;
