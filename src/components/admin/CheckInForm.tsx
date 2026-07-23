@@ -1,19 +1,27 @@
 "use client";
 
 import type { Route } from "next";
+import Image from "next/image";
 import {
+  Camera,
   Check,
   ChevronRight,
   Crosshair,
+  Images,
   LoaderCircle,
   LocateFixed,
   Map,
   MapPin,
   Search,
   ShieldCheck,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import {
+  createVisitPhotoMetadataAction,
+  prepareVisitPhotoUploadAction,
+} from "@/app/admin/photo-actions";
 import {
   createStationVisitAction,
   nearbyStationsAction,
@@ -22,12 +30,29 @@ import {
 } from "@/app/admin/visit-actions";
 import { formatDistance } from "@/lib/admin/distance";
 import { MAX_VISIT_NOTES_LENGTH } from "@/lib/admin/validation";
+import {
+  MAX_VISIT_PHOTOS,
+  PHOTO_COMPRESSION_CONCURRENCY,
+  PHOTO_UPLOAD_CONCURRENCY,
+} from "@/lib/photos/constants";
+import { prepareVisitPhoto, type PhotoPreparationStage } from "@/lib/photos/image-processing";
+import { mapWithConcurrency } from "@/lib/photos/queue";
+import { createClient } from "@/lib/supabase/client";
 import type { AdminStationResult, SelectedAdminStation } from "@/types/admin";
 import { PublicBadge } from "./PublicBadge";
 import { VisitTime } from "./VisitTime";
 
 type Mode = "nearby" | "search";
 type Coordinates = { latitude: number; longitude: number };
+type CheckInPhotoStatus = "selected" | PhotoPreparationStage | "uploading" | "saving" | "uploaded" | "failed";
+
+interface CheckInPhoto {
+  id: string;
+  file: File;
+  previewUrl: string;
+  status: CheckInPhotoStatus;
+  error: string | null;
+}
 
 interface SuccessState {
   visitId: string;
@@ -36,7 +61,19 @@ interface SuccessState {
   checkedInAt: string;
   timezone: string;
   isPublic: boolean;
+  photoTotal: number;
+  photoUploaded: number;
 }
+
+const PHOTO_STATUS_LABELS: Record<CheckInPhotoStatus, string> = {
+  selected: "Ready",
+  reading_metadata: "Reading metadata",
+  compressing: "Optimizing",
+  uploading: "Uploading",
+  saving: "Saving",
+  uploaded: "Uploaded",
+  failed: "Failed",
+};
 
 function StationResultCard({
   station,
@@ -104,8 +141,33 @@ export function CheckInForm() {
   const visitId = useRef(crypto.randomUUID());
   const [error, setError] = useState<string | null>(null);
   const [submitPending, setSubmitPending] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState("Checking In…");
   const [success, setSuccess] = useState<SuccessState | null>(null);
+  const [checkInPhotos, setCheckInPhotos] = useState<CheckInPhoto[]>([]);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const checkInPhotosRef = useRef<CheckInPhoto[]>([]);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const libraryRef = useRef<HTMLInputElement>(null);
   const searchSequence = useRef(0);
+
+  useEffect(() => {
+    checkInPhotosRef.current = checkInPhotos;
+  }, [checkInPhotos]);
+
+  useEffect(() => () => {
+    checkInPhotosRef.current.forEach((photo) => URL.revokeObjectURL(photo.previewUrl));
+  }, []);
+
+  useEffect(() => {
+    const warnBeforeLeaving = (event: BeforeUnloadEvent) => {
+      if (!success && checkInPhotosRef.current.length > 0) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", warnBeforeLeaving);
+    return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
+  }, [success]);
 
   useEffect(() => {
     if (mode !== "search") return;
@@ -192,6 +254,97 @@ export function CheckInForm() {
     }
   }
 
+  function addCheckInPhotos(files: FileList | null) {
+    if (!files?.length) return;
+    setPhotoError(null);
+    const remaining = Math.max(0, MAX_VISIT_PHOTOS - checkInPhotosRef.current.length);
+    const incoming = [...files].slice(0, remaining);
+    if (files.length > remaining) {
+      setPhotoError(`A check-in can include up to ${MAX_VISIT_PHOTOS} photos.`);
+    }
+    if (incoming.length) {
+      const additions = incoming.map((file): CheckInPhoto => ({
+        id: crypto.randomUUID(),
+        file,
+        previewUrl: URL.createObjectURL(file),
+        status: "selected",
+        error: null,
+      }));
+      setCheckInPhotos((current) => {
+        const next = [...current, ...additions];
+        checkInPhotosRef.current = next;
+        return next;
+      });
+    }
+    if (cameraRef.current) cameraRef.current.value = "";
+    if (libraryRef.current) libraryRef.current.value = "";
+  }
+
+  function removeCheckInPhoto(photoId: string) {
+    if (submitPending) return;
+    setCheckInPhotos((current) => {
+      const removed = current.find((photo) => photo.id === photoId);
+      if (removed) URL.revokeObjectURL(removed.previewUrl);
+      const next = current.filter((photo) => photo.id !== photoId);
+      checkInPhotosRef.current = next;
+      return next;
+    });
+    setPhotoError(null);
+  }
+
+  function patchCheckInPhoto(photoId: string, patch: Partial<CheckInPhoto>) {
+    setCheckInPhotos((current) => {
+      const next = current.map((photo) => photo.id === photoId ? { ...photo, ...patch } : photo);
+      checkInPhotosRef.current = next;
+      return next;
+    });
+  }
+
+  async function uploadCheckInPhoto(photo: CheckInPhoto, createdVisitId: string, photoIsPublic: boolean) {
+    try {
+      const prepared = await prepareVisitPhoto(photo.file, (stage) => {
+        patchCheckInPhoto(photo.id, { status: stage, error: null });
+      });
+      const target = await prepareVisitPhotoUploadAction(createdVisitId, prepared.mimeType, photo.id);
+      if (!target.ok || !target.photoId || !target.storagePath || !target.bucketName) {
+        throw new Error(target.error ?? "The photo upload could not be prepared.");
+      }
+
+      patchCheckInPhoto(photo.id, { status: "uploading" });
+      const storage = await createClient().storage.from(target.bucketName).upload(target.storagePath, prepared.blob, {
+        cacheControl: "3600",
+        contentType: prepared.mimeType,
+        upsert: false,
+      });
+      if (storage.error) throw new Error(storage.error.message || "Storage rejected this photo.");
+
+      patchCheckInPhoto(photo.id, { status: "saving" });
+      const metadata = await createVisitPhotoMetadataAction({
+        photoId: target.photoId,
+        visitId: createdVisitId,
+        bucketName: target.bucketName,
+        storagePath: target.storagePath,
+        photoType: "check_in",
+        caption: "",
+        isPublic: photoIsPublic,
+        takenAtCandidate: prepared.takenAtCandidate,
+        mimeType: prepared.mimeType,
+        fileSizeBytes: prepared.blob.size,
+        width: prepared.width,
+        height: prepared.height,
+      });
+      if (!metadata.ok) throw new Error(metadata.error ?? "The photo details could not be saved.");
+      patchCheckInPhoto(photo.id, { status: "uploaded", error: null });
+      return true;
+    } catch (uploadError) {
+      patchCheckInPhoto(photo.id, {
+        status: "failed",
+        error: uploadError instanceof Error ? uploadError.message : "This photo could not be uploaded.",
+      });
+      return false;
+    }
+  }
+
   async function submitCheckIn() {
     if (!selectedStation || submitPending) return;
     setError(null);
@@ -207,6 +360,7 @@ export function CheckInForm() {
     }
 
     setSubmitPending(true);
+    setSubmitMessage("Checking In…");
     const result = await createStationVisitAction({
       visitId: visitId.current,
       stationId: selectedStation.id,
@@ -216,12 +370,30 @@ export function CheckInForm() {
       notes,
       isPublic,
     });
-    setSubmitPending(false);
 
     if (!result.ok || !result.visitId || !result.checkedInAt || !result.checkedInTimezone) {
+      setSubmitPending(false);
       setError(result.error ?? "Check-in failed. Please try again.");
       return;
     }
+
+    const photosToUpload = [...checkInPhotosRef.current];
+    const createdVisitId = result.visitId;
+    const createdVisitIsPublic = result.isPublic ?? isPublic;
+    let photoUploaded = 0;
+    if (photosToUpload.length) {
+      setSubmitMessage(`Uploading ${photosToUpload.length} photo${photosToUpload.length === 1 ? "" : "s"}…`);
+      const outcomes = await mapWithConcurrency(
+        photosToUpload,
+        Math.min(PHOTO_COMPRESSION_CONCURRENCY, PHOTO_UPLOAD_CONCURRENCY),
+        (photo) => uploadCheckInPhoto(photo, createdVisitId, createdVisitIsPublic),
+      );
+      photoUploaded = outcomes.filter((outcome) => outcome.status === "fulfilled" && outcome.value).length;
+    }
+    photosToUpload.forEach((photo) => URL.revokeObjectURL(photo.previewUrl));
+    setCheckInPhotos([]);
+    checkInPhotosRef.current = [];
+    setSubmitPending(false);
 
     setSuccess({
       visitId: result.visitId,
@@ -229,7 +401,9 @@ export function CheckInForm() {
       stationName: selectedStation.name,
       checkedInAt: result.checkedInAt,
       timezone: result.checkedInTimezone,
-      isPublic: result.isPublic ?? isPublic,
+      isPublic: createdVisitIsPublic,
+      photoTotal: photosToUpload.length,
+      photoUploaded,
     });
   }
 
@@ -239,6 +413,8 @@ export function CheckInForm() {
     setNotes("");
     setIsPublic(true);
     setError(null);
+    setPhotoError(null);
+    setSubmitMessage("Checking In…");
     visitId.current = crypto.randomUUID();
     if (coordinates) void loadNearby(coordinates);
   }
@@ -266,6 +442,20 @@ export function CheckInForm() {
         {success.linkedTripPlanId ? (
           <p role="status" className="mt-5 rounded-2xl border border-[#b9ded1] bg-[#e7f5ef] px-4 py-3 text-sm font-semibold text-[#245e52]">
             This Stop is now checked in on your current Trip.
+          </p>
+        ) : null}
+        {success.photoTotal > 0 ? (
+          <p
+            role="status"
+            className={`mt-5 rounded-2xl px-4 py-3 text-sm font-semibold ${
+              success.photoUploaded === success.photoTotal
+                ? "border border-[#b9ded1] bg-[#e7f5ef] text-[#245e52]"
+                : "border border-[#ead3a4] bg-[#fff5e6] text-[#815719]"
+            }`}
+          >
+            {success.photoUploaded === success.photoTotal
+              ? `${success.photoUploaded} photo${success.photoUploaded === 1 ? "" : "s"} uploaded with this check-in.`
+              : `Visit saved and ${success.photoUploaded} of ${success.photoTotal} photos uploaded. Open the Visit to add the failed photo${success.photoTotal - success.photoUploaded === 1 ? "" : "s"} again.`}
           </p>
         ) : null}
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
@@ -521,6 +711,97 @@ export function CheckInForm() {
               />
             </div>
 
+            <div className="mt-5 rounded-[20px] border border-[#d5e6df] p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold">
+                    Photos <span className="font-normal text-[#67817e]">(optional)</span>
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-[#67817e]">
+                    Add up to {MAX_VISIT_PHOTOS}. They upload automatically after the Visit is created.
+                  </p>
+                </div>
+                <span className="shrink-0 text-xs font-semibold text-[#67817e]">
+                  {checkInPhotos.length}/{MAX_VISIT_PHOTOS}
+                </span>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  disabled={submitPending || checkInPhotos.length >= MAX_VISIT_PHOTOS}
+                  onClick={() => cameraRef.current?.click()}
+                  className="flex min-h-11 items-center justify-center gap-2 rounded-full border border-[#78aaa4] bg-white px-3 text-sm font-semibold disabled:opacity-45"
+                >
+                  <Camera size={17} aria-hidden /> Take Photo
+                </button>
+                <button
+                  type="button"
+                  disabled={submitPending || checkInPhotos.length >= MAX_VISIT_PHOTOS}
+                  onClick={() => libraryRef.current?.click()}
+                  className="flex min-h-11 items-center justify-center gap-2 rounded-full border border-[#78aaa4] bg-white px-3 text-sm font-semibold disabled:opacity-45"
+                >
+                  <Images size={17} aria-hidden /> Choose Photos
+                </button>
+                <input
+                  ref={cameraRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="sr-only"
+                  onChange={(event) => addCheckInPhotos(event.target.files)}
+                />
+                <input
+                  ref={libraryRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
+                  multiple
+                  className="sr-only"
+                  onChange={(event) => addCheckInPhotos(event.target.files)}
+                />
+              </div>
+              {checkInPhotos.length ? (
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  {checkInPhotos.map((photo) => (
+                    <div key={photo.id} className="overflow-hidden rounded-2xl bg-[#f2f6f3]">
+                      <div className="relative aspect-[4/3]">
+                        <Image
+                          src={photo.previewUrl}
+                          alt={`Selected check-in photo ${checkInPhotos.indexOf(photo) + 1}`}
+                          fill
+                          unoptimized
+                          className="object-cover"
+                        />
+                        {!submitPending ? (
+                          <button
+                            type="button"
+                            onClick={() => removeCheckInPhoto(photo.id)}
+                            aria-label="Remove selected photo"
+                            className="absolute right-2 top-2 flex size-9 items-center justify-center rounded-full bg-black/65 text-white"
+                          >
+                            <X size={16} aria-hidden />
+                          </button>
+                        ) : null}
+                      </div>
+                      <div className="px-3 py-2">
+                        <p className="truncate text-xs font-semibold">{photo.file.name}</p>
+                        <p className={`mt-1 text-xs ${photo.status === "failed" ? "text-[#8d2930]" : "text-[#67817e]"}`}>
+                          {PHOTO_STATUS_LABELS[photo.status]}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              {photoError ? (
+                <p role="alert" className="mt-3 rounded-xl bg-[#fff1f1] px-3 py-2 text-xs text-[#8d2930]">
+                  {photoError}
+                </p>
+              ) : null}
+              <p className="mt-3 text-xs leading-5 text-[#67817e]">
+                JPEG, PNG, WebP, HEIC, and HEIF are optimized before upload. Photo visibility follows this Visit.
+              </p>
+            </div>
+
             <label className="mt-4 flex min-h-16 cursor-pointer items-center gap-4 rounded-[20px] border border-[#d5e6df] px-4">
               <input
                 type="checkbox"
@@ -548,7 +829,7 @@ export function CheckInForm() {
               ) : (
                 <MapPin size={20} aria-hidden />
               )}
-              {submitPending ? "Checking In…" : "Check In Now"}
+              {submitPending ? submitMessage : "Check In Now"}
             </button>
             <p className="mt-3 text-center text-xs leading-5 text-[#67817e]">
               The database server records the authoritative check-in time.

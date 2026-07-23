@@ -188,6 +188,23 @@ test("27 Nearby results require an explicit station button selection", async () 
   assert.doesNotMatch(source, /setSelectedStation\(.*stations\[0\]/);
 });
 
+test("27b check-in supports taking or choosing up to two photos", async () => {
+  const source = await checkInPromise;
+  assert.match(source, /capture="environment"/);
+  assert.match(source, /multiple/);
+  assert.match(source, /MAX_VISIT_PHOTOS - checkInPhotosRef\.current\.length/);
+});
+
+test("27c photos upload only after the Visit is created", async () => {
+  const source = await checkInPromise;
+  const submit = source.slice(
+    source.indexOf("async function submitCheckIn"),
+    source.indexOf("function checkInAnother"),
+  );
+  assert.ok(submit.indexOf("createStationVisitAction") < submit.indexOf("uploadCheckInPhoto"));
+  assert.match(submit, /uploadCheckInPhoto\(photo, createdVisitId, createdVisitIsPublic\)/);
+});
+
 test("28 date_only display contains no clock time", () => {
   const display = formatCheckInDisplayDate("2026-04-29T16:00:00.000Z", "en", "date_only", "America/New_York");
   assert.equal(/\d{1,2}:\d{2}/.test(display), false);

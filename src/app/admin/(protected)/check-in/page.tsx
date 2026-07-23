@@ -9,7 +9,7 @@ export default function AdminCheckInPage() {
           Check In
         </h1>
         <p className="mt-4 max-w-2xl text-base leading-7 text-[#486d69]">
-          Find the Supercharger, optionally attach your phone’s location, and record an exact server-timed Visit.
+          Find the Supercharger, optionally attach your phone’s location and photos, and record an exact server-timed Visit.
         </p>
       </header>
       <CheckInForm />
