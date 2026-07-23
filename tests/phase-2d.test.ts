@@ -166,6 +166,12 @@ test("24 station search caps its visible results at 25", async () => {
   assert.match(await dataPromise, /slice\(0, 25\)/);
 });
 
+test("24b Nearby caps its distance-sorted results at 5", async () => {
+  const source = await dataPromise;
+  assert.match(source, /candidates\.length >= 5/);
+  assert.match(source, /slice\(0, 5\)/);
+});
+
 test("25 Haversine distance orders a nearby station before a distant station", () => {
   const nearby = haversineMiles(40.7357, -74.1724, 40.74, -74.18);
   const distant = haversineMiles(40.7357, -74.1724, 39.9526, -75.1652);

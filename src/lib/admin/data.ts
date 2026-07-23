@@ -258,14 +258,14 @@ export async function getNearbyAdminStations(latitude: number, longitude: number
 
   for (const radius of [35, 100, 250]) {
     candidates = await getCandidatesWithinRadius(latitude, longitude, radius);
-    if (candidates.length >= 15) break;
+    if (candidates.length >= 5) break;
   }
 
   const supabase = await createClient();
   const payToParkStationIds = await loadAdminPayToParkStationIds(supabase, admin.id);
   return attachPayToPark(candidates
     .sort((a, b) => (a.distanceMiles ?? Infinity) - (b.distanceMiles ?? Infinity))
-    .slice(0, 15), payToParkStationIds);
+    .slice(0, 5), payToParkStationIds);
 }
 
 export async function getSelectedAdminStation(
