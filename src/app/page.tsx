@@ -76,9 +76,9 @@ export default async function Home() {
       <GlobalNavigation />
       <main>
         <HeroSection />
-        <JourneyIntro summary={summary} dataSource={dataSource} />
-        <MapSectionClient stations={stations} dataSource={dataSource} dataError={dataError} />
         <CurrentTripSection trip={homepageTrip} />
+        <MapSectionClient stations={stations} dataSource={dataSource} dataError={dataError} />
+        <JourneyIntro summary={summary} dataSource={dataSource} />
       </main>
       <SiteFooter lastUpdated={summary.lastUpdated} dataSource={dataSource} />
     </>

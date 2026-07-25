@@ -2,13 +2,53 @@
 
 import type { Route } from "next";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Check, ChevronDown, Languages, Menu, X } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { type ReactNode, useEffect, useId, useState } from "react";
 import { useLanguage } from "@/i18n/LanguageProvider";
 import type { Language } from "@/i18n/translations";
+import { AppLiquidGlass } from "@/components/ui/AppLiquidGlass";
 import { LiquidGlass } from "@/components/ui/LiquidGlass";
 
+function NavigationSurface({
+  children,
+  liquid,
+}: {
+  children: ReactNode;
+  liquid: boolean;
+}) {
+  const sharedProps = {
+    "aria-label": "Primary navigation",
+    className: "mx-auto max-w-[1180px] text-[13px] font-bold leading-none",
+    contentClassName:
+      "relative flex h-[62px] items-center justify-between px-4 sm:h-[70px] sm:px-6",
+  };
+
+  if (liquid) {
+    return (
+      <AppLiquidGlass as="nav" variant="navigation" {...sharedProps}>
+        {children}
+      </AppLiquidGlass>
+    );
+  }
+
+  return (
+    <LiquidGlass
+      as="nav"
+      variant="elevated"
+      environment="warm"
+      radius="pill"
+      busyBackground
+      trackPointer
+      {...sharedProps}
+    >
+      {children}
+    </LiquidGlass>
+  );
+}
+
 export function GlobalNavigation() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
   const mobileMenuId = useId();
@@ -45,17 +85,7 @@ export function GlobalNavigation() {
 
   return (
     <header className="absolute inset-x-0 top-3 z-50 px-3 font-ui text-ink sm:px-5">
-      <LiquidGlass
-        as="nav"
-        variant="elevated"
-        environment="warm"
-        radius="pill"
-        busyBackground
-        trackPointer
-        aria-label="Primary navigation"
-        className="mx-auto max-w-[1180px] text-[13px] font-bold leading-none"
-        contentClassName="relative flex h-[62px] items-center justify-between px-4 sm:h-[70px] sm:px-6"
-      >
+      <NavigationSurface liquid={pathname === "/"}>
         <Link
           href="/"
           className="flex min-w-0 items-center gap-2 text-[15px] font-black uppercase"
@@ -76,7 +106,7 @@ export function GlobalNavigation() {
             <Link
               key={link.href}
               href={link.href}
-              className="group relative flex h-11 items-center justify-center whitespace-nowrap rounded-full px-2 text-center text-[14px] font-extrabold tracking-[0.02em] text-ink transition-colors hover:bg-white/28 hover:text-brand"
+              className="group relative flex h-11 items-center justify-center whitespace-nowrap rounded-full px-2 text-center text-[16px] font-extrabold tracking-[0.015em] text-ink transition-colors hover:bg-white/28 hover:text-brand xl:text-[17px]"
             >
               {link.label}
               <span aria-hidden className="absolute bottom-0 left-1/2 h-0.5 w-8 -translate-x-1/2 scale-x-0 rounded-full bg-brand transition group-hover:scale-x-100" />
@@ -146,7 +176,7 @@ export function GlobalNavigation() {
         >
           {open ? <X aria-hidden size={18} /> : <Menu aria-hidden size={18} />}
         </button>
-      </LiquidGlass>
+      </NavigationSurface>
 
       {open ? (
         <LiquidGlass

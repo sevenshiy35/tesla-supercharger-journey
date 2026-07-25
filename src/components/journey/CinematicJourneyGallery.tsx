@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AppLiquidGlass } from "@/components/ui/AppLiquidGlass";
 import {
   cinematicJourneyCopy,
   cinematicJourneyScenes,
@@ -202,9 +203,12 @@ export function CinematicJourneyGallery({
           </nav>
         </div>
 
-        <div className={styles.informationPanel}>
+        <AppLiquidGlass
+          variant="imageInfo"
+          className={styles.informationPanel}
+          contentClassName={styles.informationPanelContent}
+        >
           <article className={styles.introCard}>
-            <p className={styles.cardEyebrow}>{sectionCopy.eyebrow}</p>
             <h3>{sectionCopy.introTitle}</h3>
             <p className={styles.introduction}>{introduction}</p>
           </article>
@@ -217,7 +221,7 @@ export function CinematicJourneyGallery({
               </div>
             ))}
           </section>
-        </div>
+        </AppLiquidGlass>
       </div>
     </section>
   );

@@ -5,8 +5,8 @@
   color: #f7f3e3;
   font-family: var(--font-ui);
   background:
-    radial-gradient(circle at 12% 0%, rgba(52, 144, 139, 0.24), transparent 34rem),
-    linear-gradient(180deg, #102d2a 0%, #173f3c 100%);
+    radial-gradient(circle at 12% 28rem, rgba(52, 144, 139, 0.24), transparent 28rem),
+    linear-gradient(180deg, #173f3c 0%, #143632 16rem, #102d2a 30rem, #173f3c 100%);
 }
 
 .sectionHeader {
@@ -14,8 +14,7 @@
   margin: 0 auto clamp(1.75rem, 3vw, 2.75rem);
 }
 
-.sectionHeader p,
-.cardEyebrow {
+.sectionHeader p {
   margin: 0 0 0.75rem;
   color: #d8b267;
   font-size: 0.72rem;
@@ -111,18 +110,18 @@
   width: min(29rem, 40%);
 }
 
+.informationPanelContent {
+  overflow: hidden;
+  border-radius: inherit;
+}
+
 .introCard,
 .statsCard {
   color: var(--color-ink);
-  border: 1px solid rgba(255, 255, 255, 0.78);
-  background: rgba(255, 253, 242, 0.92);
-  box-shadow: 0 1.25rem 3.5rem rgba(7, 33, 31, 0.24);
-  backdrop-filter: blur(8px);
 }
 
 .introCard {
   padding: clamp(1.5rem, 2.5vw, 2.25rem);
-  border-radius: 1.35rem;
 }
 
 .introCard h3 {
@@ -154,9 +153,8 @@
 .statsCard {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  margin-top: 0.75rem;
+  border-top: 1px solid rgba(72, 109, 105, 0.22);
   overflow: hidden;
-  border-radius: 1.15rem;
 }
 
 .stat {
@@ -185,8 +183,9 @@
 
 .stat span {
   margin-top: 0.55rem;
-  color: var(--color-ink-subtle);
+  color: var(--color-ink-muted);
   font-size: clamp(0.64rem, 0.8vw, 0.76rem);
+  font-weight: 600;
   line-height: 1.3;
 }
 

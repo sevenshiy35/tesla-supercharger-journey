@@ -18,7 +18,7 @@ export const translations = {
       title: "Every Stop, A Story.",
       tagline: "Tracing America through its\nSupercharger network.",
       exploreMap: "Explore the Map",
-      viewProgress: "View Progress",
+      viewProgress: "View Trip",
       visualAlt: "Abstract United States road journey with a vehicle silhouette",
     },
     journey: {
@@ -153,7 +153,7 @@ export const translations = {
       title: "每一站，\n都是故事。",
       tagline: "一辆 Model Y，沿着超级充电网络\n驶过美国。",
       exploreMap: "浏览地图",
-      viewProgress: "查看进度",
+      viewProgress: "查看行程",
       visualAlt: "美国公路旅程与车辆剪影的抽象画面",
     },
     journey: {
