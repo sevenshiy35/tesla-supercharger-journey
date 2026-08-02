@@ -225,6 +225,15 @@ Configuration, request a fresh email; an already-issued link keeps its old redir
 
 ## Mapbox setup
 
+Mapbox maps, address search, and standard Directions requests work when their tokens are present.
+Matrix optimization is denied by default because Matrix is billed by origin/destination element.
+Keep both Matrix flags `false` until its cost model and budget controls have been explicitly approved:
+
+```dotenv
+NEXT_PUBLIC_MAPBOX_MATRIX_API_ENABLED=false
+MAPBOX_MATRIX_API_ENABLED=false
+```
+
 1. Create or sign in to a [Mapbox account](https://account.mapbox.com/).
 2. Create a public token beginning with `pk.`. The default public scopes are sufficient for the Mapbox base map.
 3. Add the token to `.env.local` as `NEXT_PUBLIC_MAPBOX_TOKEN`.
@@ -245,6 +254,7 @@ Create `.env.local`:
 
 ```dotenv
 NEXT_PUBLIC_MAPBOX_TOKEN=pk_your_mapbox_public_token
+NEXT_PUBLIC_MAPBOX_MATRIX_API_ENABLED=false
 NLR_API_KEY=your_nlr_api_key
 STATION_DATA_SOURCE=nlr
 ```

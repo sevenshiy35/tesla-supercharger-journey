@@ -422,8 +422,14 @@ are not part of this delivery.
 # Public style token used only by Mapbox GL JS to draw the administrator map
 NEXT_PUBLIC_MAPBOX_TOKEN=
 
+# Keep the Matrix optimization UI disabled unless its cost model is explicitly approved
+NEXT_PUBLIC_MAPBOX_MATRIX_API_ENABLED=false
+
 # Dedicated server token for Geocoding v6, Directions v5, and Matrix v1; never expose in a client variable
 MAPBOX_SERVER_ACCESS_TOKEN=
+
+# Deny Matrix requests on the server while leaving Geocoding and Directions available
+MAPBOX_MATRIX_API_ENABLED=false
 
 # Safe default; enable only after account-specific Directions retention rights are confirmed
 MAPBOX_PERSIST_ROUTE_GEOMETRY=false

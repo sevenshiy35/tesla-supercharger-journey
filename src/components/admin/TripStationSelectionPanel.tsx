@@ -8,6 +8,7 @@ import {
   type SelectedOutAndBackMutationState,
 } from "@/app/admin/trip-actions";
 import { setStationPayToParkAction } from "@/app/admin/station-preference-actions";
+import { isMapboxMatrixFeatureEnabled } from "@/lib/mapbox/client-config";
 import { formatTripDistance, formatTripDuration } from "@/lib/trips/format";
 import { MAX_SELECTED_STATIONS_PER_OPTIMIZATION } from "@/lib/trips/planning-config";
 import type {
@@ -63,6 +64,7 @@ export function TripStationSelectionPanel({
   onPayToParkChanged: (stationId: string, payToPark: boolean) => void;
 }) {
   const router = useRouter();
+  const matrixApiEnabled = isMapboxMatrixFeatureEnabled();
   const [corridorMiles, setCorridorMiles] = useState(10);
   const [candidates, setCandidates] = useState<TripStationCandidate[]>([]);
   const [candidatePending, setCandidatePending] = useState(false);
@@ -252,6 +254,10 @@ export function TripStationSelectionPanel({
   }
 
   async function optimize() {
+    if (!matrixApiEnabled) {
+      setError("Matrix optimization is temporarily paused to prevent additional usage charges.");
+      return;
+    }
     setConfirmOpen(false);
     setPending(true);
     setPhase(0);
@@ -283,6 +289,10 @@ export function TripStationSelectionPanel({
   }
 
   function requestOptimization() {
+    if (!matrixApiEnabled) {
+      setError("Matrix optimization is temporarily paused to prevent additional usage charges.");
+      return;
+    }
     if (stops.length > 0 || selectedCount === 0) setConfirmOpen(true);
     else void optimize();
   }
@@ -351,7 +361,7 @@ export function TripStationSelectionPanel({
       </div>
       {pending ? <p role="status" className="mt-5 flex items-center gap-2 rounded-2xl bg-[#e7f5ef] p-4 text-sm font-semibold text-[#245e52]"><LoaderCircle size={18} className="animate-spin" />{OPTIMIZATION_PHASES[phase]}…</p> : null}
       {error ? <div role="alert" className="mt-5 rounded-2xl bg-[#fff1f1] p-4 text-sm text-[#8d2930]"><p>{error}</p>{unreachable.length > 0 ? <ul className="mt-2 list-disc pl-5">{unreachable.map((name) => <li key={name}>{name}</li>)}</ul> : null}</div> : null}
-      <div className="mt-5 flex flex-wrap items-center gap-3"><button type="button" disabled={pending || candidatePending || selectedCount > MAX_SELECTED_STATIONS} onClick={requestOptimization} className="flex min-h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 font-semibold text-white disabled:opacity-40">{pending ? <LoaderCircle size={18} className="animate-spin" /> : <Sparkles size={18} />}Optimize Selected Stations</button><span className="text-xs text-[#67817e]">Optimized using real road travel times. Actual traffic and driving conditions may vary.</span></div>
+      <div className="mt-5 flex flex-wrap items-center gap-3"><button type="button" disabled={!matrixApiEnabled || pending || candidatePending || selectedCount > MAX_SELECTED_STATIONS} onClick={requestOptimization} className="flex min-h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 font-semibold text-white disabled:opacity-40">{pending ? <LoaderCircle size={18} className="animate-spin" /> : <Sparkles size={18} />}{matrixApiEnabled ? "Optimize Selected Stations" : "Matrix Optimization Paused"}</button><span className="text-xs text-[#67817e]">{matrixApiEnabled ? "Optimized using real road travel times. Actual traffic and driving conditions may vary." : "Maps, address search, and standard route calculation remain available."}</span></div>
       {selectedCandidates.length > 0 ? <div className="mt-5 rounded-[22px] border border-[#bcdcd5] bg-[#f7faf8] p-4"><h3 className="font-semibold">Selected Stations</h3><ul className="mt-3 grid gap-3 md:grid-cols-2">{selectedCandidates.map((candidate) => <li key={candidate.stationId} className="rounded-2xl border border-[#d5e6df] bg-white p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-semibold">{candidate.name}</p><p className="mt-1 text-xs text-[#67817e]">{candidate.address} · {candidate.city}, {candidate.state}</p></div><button type="button" disabled={pending} onClick={() => requestToggle(candidate.stationId)} aria-label={`Remove ${candidate.name} from selection`} className="flex min-h-10 shrink-0 items-center gap-1 rounded-full border border-[#d9a8aa] px-3 text-xs font-semibold text-[#8d2930] disabled:opacity-40"><Trash2 size={14} />Remove</button></div><div className="mt-3 flex flex-wrap items-center gap-2"><span className={`rounded-full px-2 py-1 text-xs font-semibold ${candidate.isVisited ? "bg-[#f3e8d2] text-[#725d30]" : "bg-[#e7f5ef] text-[#245e52]"}`}>{candidate.isVisited ? "Visited" : "Expected new"}</span>{candidate.payToPark ? <PayToParkBadge /> : null}</div></li>)}</ul></div> : null}
     </>}
     {result ? <div className="mt-6"><h3 className="text-xl font-semibold">Optimized route</h3><dl className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{summaryRows.map(([label, value]) => <div key={label} className="rounded-2xl bg-[#f2f6f3] p-4"><dt className="text-xs text-[#67817e]">{label}</dt><dd className="mt-1 font-semibold">{value}</dd></div>)}</dl></div> : null}

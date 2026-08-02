@@ -1,5 +1,6 @@
 export type MapboxErrorCode =
   | "invalid_request"
+  | "disabled"
   | "missing_token"
   | "unauthorized"
   | "forbidden"
@@ -24,6 +25,8 @@ export function safeMapboxErrorMessage(error: unknown) {
     return "The route provider could not complete this request. Please try again.";
   }
   switch (error.code) {
+    case "disabled":
+      return "Mapbox Matrix optimization is temporarily paused. Maps, address search, and standard route calculation remain available.";
     case "invalid_request":
       return "The route request contains invalid coordinates or too many waypoints.";
     case "missing_token":

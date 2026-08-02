@@ -16,7 +16,18 @@ function validateCoordinate(coordinate: MapboxCoordinate) {
     coordinate.latitude >= -90 && coordinate.latitude <= 90;
 }
 
+export function isMapboxMatrixApiEnabled() {
+  return process.env.MAPBOX_MATRIX_API_ENABLED?.trim().toLowerCase() === "true";
+}
+
+function requireMapboxMatrixApi() {
+  if (!isMapboxMatrixApiEnabled()) {
+    throw new MapboxServerError("disabled", "Mapbox Matrix API calls are paused by configuration.");
+  }
+}
+
 export async function getDrivingMatrix(coordinates: MapboxCoordinate[]): Promise<TripMatrixResult> {
+  requireMapboxMatrixApi();
   if (coordinates.length < 2 || coordinates.length > MATRIX_MAX_COORDINATES) {
     throw new MapboxServerError(
       "invalid_request",
@@ -42,6 +53,7 @@ export async function getDrivingMatrixSubset(
   sourceIndices: number[],
   destinationIndices: number[],
 ): Promise<TripMatrixResult> {
+  requireMapboxMatrixApi();
   if (coordinates.length < 2 || coordinates.length > MATRIX_MAX_COORDINATES) {
     throw new MapboxServerError(
       "invalid_request",

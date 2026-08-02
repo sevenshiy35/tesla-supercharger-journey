@@ -8,6 +8,7 @@ const MAX_ATTEMPTS = 3;
 export function isRouteGeometryPersistenceEnabled() {
   return process.env.MAPBOX_PERSIST_ROUTE_GEOMETRY?.trim().toLowerCase() === "true";
 }
+
 function serverToken() {
   const token = process.env.MAPBOX_SERVER_ACCESS_TOKEN?.trim();
   if (!token) throw new MapboxServerError("missing_token", "Mapbox server token is missing.");
