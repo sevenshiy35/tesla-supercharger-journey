@@ -68,7 +68,13 @@ test("3B.2 27 geocode rejects long query", async () => assert.match(await geocod
 test("3B.2 28 geocode rejects semicolons", async () => assert.match(await geocodeRoute, /query\.includes\(";"\)/));
 test("3B.2 29 geocode requires Admin", async () => assert.match(await geocodeRoute, /await requireAdmin\(\)/));
 test("3B.2 30 geocode is private no-store", async () => assert.match(await geocodeRoute, /Cache-Control.*private, no-store/i));
-test("3B.2 31 permanent Geocoding is enabled", async () => assert.match(await geocoding, /permanent: "true"/));
+test("3B.2 31 permanent Geocoding is disabled by default and gated before the request", async () => {
+  const body = await geocoding;
+  assert.match(await envExample, /^MAPBOX_PERMANENT_GEOCODING_ENABLED=false$/m);
+  assert.match(body, /MAPBOX_PERMANENT_GEOCODING_ENABLED/);
+  assert.ok(body.indexOf("requireMapboxPermanentGeocoding();") < body.indexOf("mapboxJsonRequest("));
+  assert.match(body, /permanent: "true"/);
+});
 test("3B.2 32 Geocoding is US-only", async () => assert.match(await geocoding, /country: "US"/));
 test("3B.2 33 Geocoding result limit is six", async () => assert.match(await geocoding, /limit: "6"/));
 test("3B.2 34 parser emits only safe DTO fields", () => { const result = parseGeocodingResults({ features: [{ id: "x", properties: { mapbox_id: "p", name: "Home", full_address: "1 Main St", feature_type: "address", secret: "no" }, geometry: { type: "Point", coordinates: [-75, 40] }, raw: "no" }] })[0]; assert.deepEqual(Object.keys(result).sort(), ["attribution", "featureType", "fullAddress", "label", "latitude", "longitude", "providerId"].sort()); });
@@ -82,6 +88,11 @@ test("3B.2 40 GPS does not enter localStorage", async () => assert.doesNotMatch(
 test("3B.2 41 GPS privacy notice is visible", async () => assert.match(await picker, /stored privately as part of this trip plan/));
 test("3B.2 42 station search is reused", async () => assert.match(await picker, /searchStationsAction/));
 test("3B.2 43 Station endpoint does not call a Stop action", async () => assert.doesNotMatch(await picker, /trip_plan_stops|createTripPlanStop|addTripStop/i));
+test("3B.2 43b Address mode is hidden while Permanent Geocoding is paused", async () => {
+  const body = await picker;
+  assert.match(body, /isMapboxPermanentGeocodingFeatureEnabled/);
+  assert.match(body, /permanentGeocodingEnabled \|\| item\.value !== "mapbox"/);
+});
 
 test("3B.2 44 Directions uses mapbox driving", async () => assert.match(await directions, /directions\/v5\/mapbox\/driving/));
 test("3B.2 45 Directions asks for GeoJSON", async () => assert.match(await directions, /geometries: "geojson"/));

@@ -68,13 +68,16 @@ administrator-only Trip row.
 If a referenced Station is deleted, `on delete set null` preserves the private label/address/coordinate
 snapshot, but route calculation requires the endpoint to be selected again.
 
-## Why Permanent Geocoding
+## Permanent Geocoding is paused
 
-The product must retain chosen endpoints. It therefore uses Mapbox Geocoding API v6 with
-`permanent=true`, `country=US`, `language=en`, autocomplete, the reviewed address/place types, and a
-six-result limit. Search starts at three characters and uses a 400 ms debounce, AbortController,
-and a monotonically checked query sequence. Search Box results are not used as the persisted source
-because its retrieval/storage contract is different from Permanent Geocoding.
+The product retains chosen endpoints, so it must not switch to Temporary Geocoding: Mapbox does not
+permit temporary results to be cached or stored for future use. Address search is therefore hidden
+and rejected by the server unless both Permanent Geocoding feature flags are explicitly enabled.
+Current-location and Supercharger endpoints remain available, and previously stored endpoints remain
+usable for Directions.
+
+When explicitly enabled, the implementation uses Mapbox Geocoding API v6 with `permanent=true`,
+`country=US`, `language=en`, autocomplete, the reviewed address/place types, and a six-result limit.
 
 Mapbox documents that permanent results may be stored indefinitely, and that Permanent Geocoding
 requires an eligible account with a valid credit card or enterprise contract. Configure and verify
@@ -425,11 +428,17 @@ NEXT_PUBLIC_MAPBOX_TOKEN=
 # Keep the Matrix optimization UI disabled unless its cost model is explicitly approved
 NEXT_PUBLIC_MAPBOX_MATRIX_API_ENABLED=false
 
+# Hide Mapbox address search while Permanent Geocoding is paused
+NEXT_PUBLIC_MAPBOX_PERMANENT_GEOCODING_ENABLED=false
+
 # Dedicated server token for Geocoding v6, Directions v5, and Matrix v1; never expose in a client variable
 MAPBOX_SERVER_ACCESS_TOKEN=
 
-# Deny Matrix requests on the server while leaving Geocoding and Directions available
+# Deny Matrix requests without affecting other Mapbox services
 MAPBOX_MATRIX_API_ENABLED=false
+
+# Deny billable Permanent Geocoding requests on the server
+MAPBOX_PERMANENT_GEOCODING_ENABLED=false
 
 # Safe default; enable only after account-specific Directions retention rights are confirmed
 MAPBOX_PERSIST_ROUTE_GEOMETRY=false

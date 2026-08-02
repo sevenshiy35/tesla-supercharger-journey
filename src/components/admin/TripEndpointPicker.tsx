@@ -3,6 +3,7 @@
 import { Crosshair, LoaderCircle, MapPin, Search, Zap } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { searchStationsAction, selectStationAction } from "@/app/admin/visit-actions";
+import { isMapboxPermanentGeocodingFeatureEnabled } from "@/lib/mapbox/client-config";
 import type { GeocodingResult } from "@/lib/mapbox/types";
 import type { TripEndpoint, TripEndpointSource } from "@/lib/trips/types";
 import type { AdminStationResult } from "@/types/admin";
@@ -28,8 +29,10 @@ export function TripEndpointPicker({
   allowCurrentLocation?: boolean;
   onChange: (endpoint: TripEndpoint | null) => void;
 }) {
+  const permanentGeocodingEnabled = isMapboxPermanentGeocodingFeatureEnabled();
   const [choosing, setChoosing] = useState(!value);
-  const [mode, setMode] = useState<TripEndpointSource>("mapbox");
+  const [mode, setMode] = useState<TripEndpointSource>(() =>
+    permanentGeocodingEnabled ? "mapbox" : allowCurrentLocation ? "current_location" : "station");
   const [query, setQuery] = useState("");
   const [geocodingResults, setGeocodingResults] = useState<GeocodingResult[]>([]);
   const [stations, setStations] = useState<AdminStationResult[]>([]);
@@ -39,12 +42,12 @@ export function TripEndpointPicker({
   const [locationLabel, setLocationLabel] = useState("Current location");
   const sequence = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const availableModes = allowCurrentLocation
-    ? modes
-    : modes.filter((item) => item.value !== "current_location");
+  const availableModes = modes.filter((item) =>
+    (permanentGeocodingEnabled || item.value !== "mapbox") &&
+    (allowCurrentLocation || item.value !== "current_location"));
   const modeColumns = availableModes.length === 3
     ? "grid-cols-2 sm:grid-cols-3"
-    : "grid-cols-2";
+    : availableModes.length === 2 ? "grid-cols-2" : "grid-cols-1";
   const modeButtonColumns = availableModes.length === 3
     ? "last:col-span-2 sm:last:col-span-1"
     : "";
@@ -58,7 +61,7 @@ export function TripEndpointPicker({
   }, []);
 
   useEffect(() => {
-    if (!choosing || mode !== "mapbox" || query.trim().length < 3) {
+    if (!permanentGeocodingEnabled || !choosing || mode !== "mapbox" || query.trim().length < 3) {
       return;
     }
     const requestSequence = ++sequence.current;
@@ -88,7 +91,7 @@ export function TripEndpointPicker({
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [choosing, mode, query]);
+  }, [choosing, mode, permanentGeocodingEnabled, query]);
 
   useEffect(() => {
     if (!choosing || mode !== "station" || query.trim().length < 2) {
@@ -108,6 +111,7 @@ export function TripEndpointPicker({
   }, [choosing, mode, query]);
 
   function chooseMapbox(result: GeocodingResult) {
+    if (!permanentGeocodingEnabled) return;
     onChange({
       source: "mapbox",
       label: result.label,
@@ -146,7 +150,7 @@ export function TripEndpointPicker({
   function requestLocation() {
     setError(null);
     if (!("geolocation" in navigator)) {
-      setError("This browser does not support location. Search for an address or Supercharger instead.");
+      setError("This browser does not support location. Search for a Supercharger instead.");
       return;
     }
     setPending(true);
@@ -167,7 +171,7 @@ export function TripEndpointPicker({
       (locationError) => {
         setPending(false);
         setError(locationError.code === locationError.PERMISSION_DENIED
-          ? "Location permission was denied. Address and Supercharger search are still available."
+          ? "Location permission was denied. Supercharger search is still available."
           : locationError.code === locationError.TIMEOUT
             ? "Location timed out. Try again or use another endpoint source."
             : "Your location could not be determined. Use another endpoint source.");

@@ -225,13 +225,16 @@ Configuration, request a fresh email; an already-issued link keeps its old redir
 
 ## Mapbox setup
 
-Mapbox maps, address search, and standard Directions requests work when their tokens are present.
-Matrix optimization is denied by default because Matrix is billed by origin/destination element.
-Keep both Matrix flags `false` until its cost model and budget controls have been explicitly approved:
+Mapbox maps and standard Directions requests work when their tokens are present. Matrix optimization
+is denied by default because Matrix is billed by origin/destination element. Permanent Geocoding is
+also denied by default because selected results are stored with Trip plans.
+Keep these paid-service flags `false` until their cost model has been explicitly approved:
 
 ```dotenv
 NEXT_PUBLIC_MAPBOX_MATRIX_API_ENABLED=false
 MAPBOX_MATRIX_API_ENABLED=false
+NEXT_PUBLIC_MAPBOX_PERMANENT_GEOCODING_ENABLED=false
+MAPBOX_PERMANENT_GEOCODING_ENABLED=false
 ```
 
 1. Create or sign in to a [Mapbox account](https://account.mapbox.com/).
@@ -242,7 +245,8 @@ MAPBOX_MATRIX_API_ENABLED=false
 The map is working when the neutral dark United States base map, navigation controls, station clusters, and individual station points are visible. Without the token, the page remains usable and displays a configuration notice.
 
 The private Trip Planner additionally needs a dedicated server token as
-`MAPBOX_SERVER_ACCESS_TOKEN`. It performs Permanent Geocoding, Directions, and Matrix only on the server;
+`MAPBOX_SERVER_ACCESS_TOKEN`. It performs Directions and, only when separately enabled, Permanent
+Geocoding and Matrix on the server;
 never prefix this token with `NEXT_PUBLIC_`. Keep `MAPBOX_PERSIST_ROUTE_GEOMETRY=false` unless your
 account-specific Mapbox contract has been reviewed to permit long-term Directions Geometry storage.
 
@@ -255,6 +259,7 @@ Create `.env.local`:
 ```dotenv
 NEXT_PUBLIC_MAPBOX_TOKEN=pk_your_mapbox_public_token
 NEXT_PUBLIC_MAPBOX_MATRIX_API_ENABLED=false
+NEXT_PUBLIC_MAPBOX_PERMANENT_GEOCODING_ENABLED=false
 NLR_API_KEY=your_nlr_api_key
 STATION_DATA_SOURCE=nlr
 ```
@@ -343,7 +348,8 @@ clients receive base-table `SELECT` only; Draft mutations are RPC-only. An admin
 mutate only their own Plans, while Stops and Segments inherit that boundary through the parent Plan.
 No public Trip View or anonymous Policy exists.
 
-Geocoding v6 requests use `permanent=true`, US-only results, and an Admin-only no-store proxy.
+Permanent Geocoding is paused by default. When explicitly enabled, Geocoding v6 requests use
+`permanent=true`, US-only results, and an Admin-only no-store proxy.
 Directions runs in Server Actions; the browser never submits Geometry or route metrics. A monotonic
 input revision and transaction RPC reject stale provider results. A real Trip Type, Origin, or
 Destination change invalidates old route data exactly once; an identical save changes nothing.

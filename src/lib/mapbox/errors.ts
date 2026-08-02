@@ -26,7 +26,7 @@ export function safeMapboxErrorMessage(error: unknown) {
   }
   switch (error.code) {
     case "disabled":
-      return "Mapbox Matrix optimization is temporarily paused. Maps, address search, and standard route calculation remain available.";
+      return "This Mapbox operation is temporarily paused to prevent additional usage charges.";
     case "invalid_request":
       return "The route request contains invalid coordinates or too many waypoints.";
     case "missing_token":

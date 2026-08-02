@@ -35,7 +35,12 @@ test("Matrix calls require their dedicated server flag before reaching the share
     const body = matrix.slice(matrix.indexOf(`export async function ${functionName}`));
     assert.ok(body.indexOf("requireMapboxMatrixApi();") < body.indexOf("mapboxJsonRequest("));
   }
-  assert.match(errors, /case "disabled":[\s\S]+Matrix optimization is temporarily paused/);
+  assert.match(errors, /case "disabled":[\s\S]+temporarily paused to prevent additional usage charges/);
+});
+
+test("Permanent Geocoding requires its dedicated server flag before reaching the shared client", () => {
+  assert.match(geocoding, /MAPBOX_PERMANENT_GEOCODING_ENABLED[\s\S]+=== "true"/);
+  assert.ok(geocoding.indexOf("requireMapboxPermanentGeocoding();") < geocoding.indexOf("mapboxJsonRequest("));
 });
 
 test("browser maps are restored and only the Matrix optimization control is disabled", () => {
@@ -48,8 +53,10 @@ test("browser maps are restored and only the Matrix optimization control is disa
   assert.match(selectionPanel, /Matrix Optimization Paused/);
 });
 
-test("documented defaults disable only Matrix", () => {
+test("documented defaults disable Matrix and Permanent Geocoding independently", () => {
   assert.match(envExample, /^NEXT_PUBLIC_MAPBOX_MATRIX_API_ENABLED=false$/m);
   assert.match(envExample, /^MAPBOX_MATRIX_API_ENABLED=false$/m);
+  assert.match(envExample, /^NEXT_PUBLIC_MAPBOX_PERMANENT_GEOCODING_ENABLED=false$/m);
+  assert.match(envExample, /^MAPBOX_PERMANENT_GEOCODING_ENABLED=false$/m);
   assert.doesNotMatch(envExample, /^(?:NEXT_PUBLIC_)?MAPBOX_API_ENABLED=/m);
 });
